@@ -18,6 +18,9 @@ set(SMTG_ENABLE_VSTGUI_SUPPORT ON CACHE BOOL "" FORCE)
 set(SMTG_ADD_VST3_PLUGINS_SAMPLES OFF CACHE BOOL "" FORCE)
 set(SMTG_ADD_VST3_HOSTING_SAMPLES OFF CACHE BOOL "" FORCE)
 set(SMTG_RUN_VST_VALIDATOR OFF CACHE BOOL "" FORCE)
+if(APPLE)
+    set(SMTG_ENABLE_AUV2_BUILDS ON CACHE BOOL "" FORCE)
+endif()
 FetchContent_MakeAvailable(vst3sdk)
 
 # Ensure dllmain.cpp is found by smtg_target_add_library_main

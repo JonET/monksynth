@@ -18,9 +18,7 @@ jobs:
             artifact_name: MonkSynth-VST3-Windows
           - os: macos-latest
             name: macOS
-            cmake_flags: >-
-              -DSMTG_ENABLE_AUV2_BUILDS=ON
-              -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+            cmake_flags: '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"'
             artifact_name: MonkSynth-VST3-macOS
           - os: ubuntu-latest
             name: Linux
