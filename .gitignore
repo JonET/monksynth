@@ -1,0 +1,26 @@
+# IDE
+.vs/
+.vscode/
+*.suo
+*.user
+*.sln.docstates
+.idea/
+*.swp
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
+# C++ build output
+cpp/build/
+cpp/out/
+cpp/lib/
+
+# VST3 SDK dirs (appear at repo root if VS opens the CMake solution)
+/build/
+/pluginterfaces/
+/public.sdk/
+/vstgui4/
+/tutorials/
+/doc/

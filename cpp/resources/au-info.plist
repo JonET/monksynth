@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.monksynth.audiounit</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>MonkSynth</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.2.0</string>
+	<key>CFBundleVersion</key>
+	<string>0.2.0</string>
+	<key>AudioComponents</key>
+	<array>
+		<dict>
+			<key>name</key>
+			<string>MonkSynth</string>
+			<key>description</key>
+			<string>MonkSynth Vocal Synthesizer</string>
+			<key>manufacturer</key>
+			<string>ODLC</string>
+			<key>type</key>
+			<string>aumu</string>
+			<key>subtype</key>
+			<string>MkSy</string>
+			<key>version</key>
+			<integer>1</integer>
+			<key>sandboxSafe</key>
+			<true/>
+			<key>tags</key>
+			<array>
+				<string>Synthesizer</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>
