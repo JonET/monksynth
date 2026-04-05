@@ -18,7 +18,7 @@ jobs:
             artifact_name: MonkSynth-VST3-Windows
           - os: macos-latest
             name: macOS
-            cmake_flags: '-G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DSMTG_COREAUDIO_SDK_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks'
+            cmake_flags: '-G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DSMTG_COREAUDIO_SDK_PATH=/tmp/CoreAudioSDK'
             artifact_name: MonkSynth-VST3-macOS
           - os: ubuntu-latest
             name: Linux
@@ -40,6 +40,13 @@ jobs:
             libxcb-cursor-dev libxcb-keysyms1-dev libxcb-xkb-dev \
             libxkbcommon-dev libxkbcommon-x11-dev libfontconfig1-dev \
             libcairo2-dev libgtkmm-3.0-dev libsqlite3-dev libxcb-util0-dev
+
+      - name: Install CoreAudio SDK (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          curl -sL https://github.com/nickvido/CoreAudioUtilityClasses/archive/refs/heads/master.tar.gz -o /tmp/coreaudio.tar.gz
+          mkdir -p /tmp/CoreAudioSDK
+          tar xzf /tmp/coreaudio.tar.gz -C /tmp/CoreAudioSDK --strip-components=1
 
       - name: Cache VST3 SDK
         uses: actions/cache@v5
