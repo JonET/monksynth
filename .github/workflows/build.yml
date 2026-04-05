@@ -18,7 +18,7 @@ jobs:
             artifact_name: MonkSynth-VST3-Windows
           - os: macos-latest
             name: macOS
-            cmake_flags: '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"'
+            cmake_flags: '-G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DSMTG_COREAUDIO_SDK_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks'
             artifact_name: MonkSynth-VST3-macOS
           - os: ubuntu-latest
             name: Linux
