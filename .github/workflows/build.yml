@@ -65,11 +65,20 @@ jobs:
 
           echo -n "$MACOS_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
 
+          # Re-encode the .p12 with modern encryption (AES-256) so that
+          # security import can handle all identities on newer macOS.
+          MODERN_P12=$RUNNER_TEMP/modern_certificate.p12
+          openssl pkcs12 -in "$CERTIFICATE_PATH" -out "$RUNNER_TEMP/certs.pem" \
+            -passin pass:"$MACOS_CERTIFICATE_PWD" -passout pass:"$MACOS_CERTIFICATE_PWD" -legacy
+          openssl pkcs12 -export -in "$RUNNER_TEMP/certs.pem" -out "$MODERN_P12" \
+            -passin pass:"$MACOS_CERTIFICATE_PWD" -passout pass:"$MACOS_CERTIFICATE_PWD"
+          rm "$RUNNER_TEMP/certs.pem"
+
           security create-keychain -p "$KEYCHAIN_PWD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PWD" $KEYCHAIN_PATH
 
-          security import $CERTIFICATE_PATH -P "$MACOS_CERTIFICATE_PWD" -A -f pkcs12 -k $KEYCHAIN_PATH
+          security import $MODERN_P12 -P "$MACOS_CERTIFICATE_PWD" -A -f pkcs12 -k $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple:,productbuild: -k "$KEYCHAIN_PWD" $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
 
