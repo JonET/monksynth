@@ -10,6 +10,7 @@
 #include "vstgui/lib/cfileselector.h"
 #include "vstgui/lib/cframe.h"
 #include "vstgui/lib/controls/coptionmenu.h"
+#include "vstgui/lib/cvstguitimer.h"
 #include "vstgui/lib/platform/platformfactory.h"
 #include "vstgui/uidescription/uidescription.h"
 
@@ -21,7 +22,7 @@ namespace MonkSynth {
 
 IPlugView *PLUGIN_API Controller::createView(const char *name) {
     if (FIDStringsEqual(name, ViewType::kEditor)) {
-        return new ThemedVST3Editor(this, "view", "editor.uidesc");
+        return new ThemedVST3Editor(this, "view", "editor.uidesc", &themeManager_);
     }
     return nullptr;
 }
@@ -46,10 +47,10 @@ CView *Controller::createCustomView(UTF8StringPtr name, const UIAttributes & /*a
 
 void Controller::didOpen(VST3Editor *editor) {
     currentEditor_ = editor;
-    themeManager_.autoDetectClassicTheme();
-    if (themeManager_.hasTheme()) {
-        applyTheme(editor);
-    } else {
+    // Theme bitmaps are applied in ThemedVST3Editor::open() before views are
+    // created, so CAnimKnob sees the real bitmap dimensions at init time.
+    // We only need to show the setup overlay when no theme is available.
+    if (!themeManager_.hasTheme()) {
         showSetupOverlay(editor);
     }
 }
@@ -139,29 +140,40 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
     // "Load Theme..." item.
     auto *loadItem = new CCommandMenuItem(CCommandMenuItem::Desc("Load Theme..."));
     loadItem->setActions([this, themedEditor](CCommandMenuItem *) {
-        auto *frame = themedEditor->getFrame();
-        if (!frame)
-            return;
+        // Defer file dialog opening until after the context menu's tracking
+        // loop has ended.  On macOS, opening NSOpenPanel while the NSMenu is
+        // still active crashes the host (e.g. Ableton Live).
+        Call::later([this, themedEditor]() {
+            auto *frame = themedEditor->getFrame();
+            if (!frame)
+                return;
 
-        auto *selector = CNewFileSelector::create(frame, CNewFileSelector::kSelectDirectory);
-        if (!selector)
-            return;
+            // Use kSelectFile (select theme.json) instead of kSelectDirectory.
+            // macOS NSOpenPanel directory selection doesn't work reliably as a
+            // sheet in plugin hosts.
+            auto *selector = CNewFileSelector::create(frame, CNewFileSelector::kSelectFile);
+            if (!selector)
+                return;
 
-        selector->setTitle("Select Theme Folder");
-        if (themeManager_.hasTheme())
-            selector->setInitialDirectory(UTF8String(themeManager_.themePath().generic_u8string()));
+            selector->setTitle("Select theme.json in Theme Folder");
+            selector->addFileExtension(CFileExtension("JSON Files", "json"));
+            if (themeManager_.hasTheme())
+                selector->setInitialDirectory(
+                    UTF8String(themeManager_.themePath().generic_u8string()));
 
-        selector->run([this, themedEditor](CNewFileSelector *sel) {
-            if (sel->getNumSelectedFiles() > 0) {
-                themeManager_.setThemePath(sel->getSelectedFile(0));
-                auto *desc = themedEditor->getUIDescription();
-                if (desc)
-                    desc->freePlatformResources();
-                applyTheme(themedEditor);
-                themedEditor->recreateUI();
-            }
+            selector->run([this, themedEditor](CNewFileSelector *sel) {
+                if (sel->getNumSelectedFiles() > 0) {
+                    std::filesystem::path file(sel->getSelectedFile(0));
+                    themeManager_.setThemePath(file.parent_path());
+                    auto *desc = themedEditor->getUIDescription();
+                    if (desc)
+                        desc->freePlatformResources();
+                    applyTheme(themedEditor);
+                    themedEditor->recreateUI();
+                }
+            });
+            selector->forget();
         });
-        selector->forget();
     });
     menu->addEntry(loadItem);
 
@@ -169,34 +181,36 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
     auto *importItem =
         new CCommandMenuItem(CCommandMenuItem::Desc("Import Classic Skin from DLL..."));
     importItem->setActions([this, themedEditor](CCommandMenuItem *) {
-        auto *frame = themedEditor->getFrame();
-        if (!frame)
-            return;
-
-        auto *selector = CNewFileSelector::create(frame, CNewFileSelector::kSelectFile);
-        if (!selector)
-            return;
-
-        selector->setTitle("Select Delay Lama DLL");
-        selector->addFileExtension(CFileExtension("DLL Files", "dll"));
-
-        selector->run([this, themedEditor](CNewFileSelector *sel) {
-            if (sel->getNumSelectedFiles() == 0)
+        Call::later([this, themedEditor]() {
+            auto *frame = themedEditor->getFrame();
+            if (!frame)
                 return;
 
-            auto configDir = themeManager_.getClassicThemeDir().parent_path().parent_path();
-            auto result = extractClassicTheme(sel->getSelectedFile(0), configDir);
+            auto *selector = CNewFileSelector::create(frame, CNewFileSelector::kSelectFile);
+            if (!selector)
+                return;
 
-            if (result.success) {
-                themeManager_.setThemePath(result.themeDir);
-                auto *desc = themedEditor->getUIDescription();
-                if (desc)
-                    desc->freePlatformResources();
-                applyTheme(themedEditor);
-                themedEditor->recreateUI();
-            }
+            selector->setTitle("Select Delay Lama DLL");
+            selector->addFileExtension(CFileExtension("DLL Files", "dll"));
+
+            selector->run([this, themedEditor](CNewFileSelector *sel) {
+                if (sel->getNumSelectedFiles() == 0)
+                    return;
+
+                auto configDir = themeManager_.getClassicThemeDir().parent_path().parent_path();
+                auto result = extractClassicTheme(sel->getSelectedFile(0), configDir);
+
+                if (result.success) {
+                    themeManager_.setThemePath(result.themeDir);
+                    auto *desc = themedEditor->getUIDescription();
+                    if (desc)
+                        desc->freePlatformResources();
+                    applyTheme(themedEditor);
+                    themedEditor->recreateUI();
+                }
+            });
+            selector->forget();
         });
-        selector->forget();
     });
     menu->addEntry(importItem);
 

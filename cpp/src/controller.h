@@ -3,18 +3,61 @@
 #include "theme_manager.h"
 
 #include "public.sdk/source/vst/vsteditcontroller.h"
+#include "vstgui/lib/cbitmap.h"
+#include "vstgui/lib/platform/platformfactory.h"
 #include "vstgui/plugin-bindings/vst3editor.h"
+#include "vstgui/uidescription/uidescription.h"
 
 namespace MonkSynth {
 
 class Controller;
 class MonkView;
 
-// Thin subclass to expose requestRecreateView() to the controller.
+// Subclass that applies theme bitmaps before views are created, so that
+// controls like CAnimKnob see the real bitmap dimensions at init time.
 class ThemedVST3Editor : public VSTGUI::VST3Editor {
   public:
-    using VST3Editor::VST3Editor;
+    ThemedVST3Editor(Steinberg::Vst::EditController *controller, VSTGUI::UTF8StringPtr templateName,
+                     VSTGUI::UTF8StringPtr xmlFile, ThemeManager *themeManager)
+        : VST3Editor(controller, templateName, xmlFile), themeManager_(themeManager) {}
+
     void recreateUI() { requestRecreateView(); }
+
+    bool PLUGIN_API open(void *parent, const VSTGUI::PlatformType &type) override {
+        // Swap placeholder bitmaps for real theme assets before the base class
+        // creates views.  CAnimKnob::setBackground() recalculates numSubPixmaps
+        // from the bitmap height, so the bitmaps must already be full-size.
+        if (themeManager_) {
+            themeManager_->autoDetectClassicTheme();
+            if (themeManager_->hasTheme())
+                applyThemeBitmaps();
+        }
+        return VST3Editor::open(parent, type);
+    }
+
+  private:
+    void applyThemeBitmaps() {
+        auto *desc = getUIDescription();
+        if (!desc || !themeManager_)
+            return;
+
+        for (auto &[name, filename] : ThemeManager::bitmapFileMap()) {
+            auto path = themeManager_->resolveThemeBitmap(name);
+            if (!path)
+                continue;
+
+            auto platformBmp = VSTGUI::getPlatformFactory().createBitmapFromPath(
+                path->generic_u8string().c_str());
+            if (!platformBmp)
+                continue;
+
+            VSTGUI::CBitmap *bmp = desc->getBitmap(name.c_str());
+            if (bmp)
+                bmp->setPlatformBitmap(platformBmp);
+        }
+    }
+
+    ThemeManager *themeManager_ = nullptr;
 };
 
 class Controller : public Steinberg::Vst::EditController, public VSTGUI::VST3EditorDelegate {

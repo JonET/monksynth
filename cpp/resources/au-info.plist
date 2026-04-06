@@ -31,6 +31,8 @@
 			<string>aumu</string>
 			<key>subtype</key>
 			<string>MkSy</string>
+			<key>factoryFunction</key>
+			<string>AUWrapperFactory</string>
 			<key>version</key>
 			<integer>1</integer>
 			<key>sandboxSafe</key>
