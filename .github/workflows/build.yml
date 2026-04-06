@@ -144,6 +144,14 @@ jobs:
             --options runtime --timestamp \
             "${{ steps.find_vst3.outputs.path }}"
 
+          # The AU bundle contains a symlink to the VST3 at
+          # Contents/Resources/plugin.vst3.  Replace it with a real copy
+          # so the AU is self-contained and its signature is valid.
+          echo "Resolving AU plugin.vst3 symlink..."
+          AU_RES="${{ steps.find_au.outputs.path }}/Contents/Resources"
+          rm -f "$AU_RES/plugin.vst3"
+          cp -R "${{ steps.find_vst3.outputs.path }}" "$AU_RES/plugin.vst3"
+
           echo "Signing AU..."
           codesign --force --deep --sign "$IDENTITY" \
             --options runtime --timestamp \
