@@ -1,5 +1,9 @@
 # MonkSynth
 
+[![Build](https://github.com/JonET/monksynth/actions/workflows/build.yml/badge.svg)](https://github.com/JonET/monksynth/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/JonET/monksynth?include_prereleases)](https://github.com/JonET/monksynth/releases)
+[![License](https://img.shields.io/github/license/JonET/monksynth)](LICENSE)
+
 A monophonic vocal synthesizer that sounds like a monk chanting. Built using formant-wave-function (FOF) synthesis, inspired by the classic [Delay Lama](http://www.audionerdz.nl/) VST plugin by AudioNerdz (2002).
 
 **[Download the latest release](https://github.com/JonET/monksynth/releases)** — available for Windows and Linux. macOS coming soon.
