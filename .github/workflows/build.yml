@@ -106,6 +106,7 @@ jobs:
               "-DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}"
               "-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE=Manual"
               "-DCMAKE_XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME=YES"
+              "-DCMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS=--timestamp"
             )
           fi
           cmake -B build ${{ matrix.cmake_flags }} "${SIGNING_FLAGS[@]}" -DMONKSYNTH_VERSION_LABEL="${{ steps.version.outputs.label }}"
@@ -135,6 +136,15 @@ jobs:
           AU=$(find cpp/build -name "MonkSynth.component" -type d | head -1)
           echo "path=$AU" >> "$GITHUB_OUTPUT"
           echo "Found AU at: $AU"
+
+      - name: Verify code signature
+        if: runner.os == 'macOS'
+        run: |
+          echo "=== VST3 signature ==="
+          codesign -dvv "${{ steps.find_vst3.outputs.path }}"
+          echo ""
+          echo "=== AU signature ==="
+          codesign -dvv "${{ steps.find_au.outputs.path }}" || true
 
       - name: Package VST3
         shell: bash
