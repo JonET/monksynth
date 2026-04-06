@@ -6,6 +6,12 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS version")
+    # VSTGUI uses deprecated wstring_convert; suppress the error on newer SDKs
+    add_compile_options(-Wno-deprecated-declarations)
+endif()
+
 # --- Fetch VST3 SDK ---
 include(FetchContent)
 FetchContent_Declare(vst3sdk
@@ -75,6 +81,13 @@ smtg_target_add_plugin_resources(MonkSynth
         resources/fader-right-sm.png
         resources/info.png
 )
+
+if(APPLE)
+    smtg_target_set_bundle(MonkSynth
+        BUNDLE_IDENTIFIER "com.monksynth.vst3"
+        COMPANY_NAME "MonkSynth"
+    )
+endif()
 
 if(UNIX)
     target_link_libraries(MonkSynth PRIVATE m)

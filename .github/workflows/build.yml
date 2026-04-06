@@ -139,6 +139,46 @@ jobs:
           cd "$(dirname "${{ steps.find_au.outputs.path }}")"
           zip -r "$GITHUB_WORKSPACE/MonkSynth-AU-macOS.zip" "MonkSynth.component"
 
+      - name: Notarize VST3
+        if: runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool submit "${{ matrix.artifact_name }}.zip" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          cd "$(dirname "${{ steps.find_vst3.outputs.path }}")"
+          xcrun stapler staple "MonkSynth.vst3"
+          cd "$GITHUB_WORKSPACE"
+          rm "${{ matrix.artifact_name }}.zip"
+          cd "$(dirname "${{ steps.find_vst3.outputs.path }}")"
+          zip -r "$GITHUB_WORKSPACE/${{ matrix.artifact_name }}.zip" "MonkSynth.vst3"
+
+      - name: Notarize AU
+        if: runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool submit "MonkSynth-AU-macOS.zip" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          cd "$(dirname "${{ steps.find_au.outputs.path }}")"
+          xcrun stapler staple "MonkSynth.component"
+          cd "$GITHUB_WORKSPACE"
+          rm "MonkSynth-AU-macOS.zip"
+          cd "$(dirname "${{ steps.find_au.outputs.path }}")"
+          zip -r "$GITHUB_WORKSPACE/MonkSynth-AU-macOS.zip" "MonkSynth.component"
+
       - name: Upload VST3
         uses: actions/upload-artifact@v7
         with:
