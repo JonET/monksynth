@@ -18,7 +18,7 @@ jobs:
             artifact_name: MonkSynth-VST3-Windows
           - os: macos-latest
             name: macOS
-            cmake_flags: '-G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DSMTG_AUDIOUNIT_SDK_PATH=/tmp/AudioUnitSDK-AudioUnitSDK-1.1.0'
+            cmake_flags: '-G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DSMTG_AUDIOUNIT_SDK_PATH=/tmp/AudioUnitSDK-AudioUnitSDK-1.1.0 -DSMTG_CODE_SIGN_IDENTITY_MAC="-"'
             artifact_name: MonkSynth-VST3-macOS
           - os: ubuntu-latest
             name: Linux
