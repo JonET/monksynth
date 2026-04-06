@@ -252,6 +252,7 @@ jobs:
             - **Linux (VST3):** Extract and copy to `~/.vst3/`
 
             ### Notes
+            - Windows: unsigned — SmartScreen may show a warning. Click **More info** → **Run anyway**
             - macOS build is Universal (arm64 + x86_64)
             - macOS: signed with Developer ID
             - Requires a DAW with VST3 support (or AU on macOS)
