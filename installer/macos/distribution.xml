@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>MonkSynth</title>
+    <welcome file="welcome.html"/>
+    <license file="license.html"/>
+    <options customize="always" require-scripts="false" rootVolumeOnly="true"/>
+
+    <choices-outline>
+        <line choice="vst3"/>
+        <line choice="au"/>
+    </choices-outline>
+
+    <choice id="vst3"
+            title="VST3 Plugin"
+            description="Install MonkSynth VST3 to /Library/Audio/Plug-Ins/VST3/">
+        <pkg-ref id="com.monksynth.vst3"/>
+    </choice>
+
+    <choice id="au"
+            title="Audio Unit Plugin"
+            description="Install MonkSynth AU to /Library/Audio/Plug-Ins/Components/">
+        <pkg-ref id="com.monksynth.audiounit"/>
+    </choice>
+
+    <pkg-ref id="com.monksynth.vst3" version="0.0.0" onConclusion="none">MonkSynth-VST3.pkg</pkg-ref>
+    <pkg-ref id="com.monksynth.audiounit" version="0.0.0" onConclusion="none">MonkSynth-AU.pkg</pkg-ref>
+</installer-gui-script>

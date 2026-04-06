@@ -253,6 +253,34 @@ jobs:
           cd "$(dirname "${{ steps.find_au.outputs.path }}")"
           zip -r "$GITHUB_WORKSPACE/MonkSynth-AU-macOS.zip" "MonkSynth.component"
 
+      - name: Build macOS installer
+        if: runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          installer/macos/build-pkg.sh \
+            "${{ steps.find_vst3.outputs.path }}" \
+            "${{ steps.find_au.outputs.path }}" \
+            "${{ steps.version.outputs.number }}" \
+            "Developer ID Installer: Jonathan Taylor ($APPLE_TEAM_ID)"
+
+          xcrun notarytool submit installer/macos/Output/*.pkg \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          xcrun stapler staple installer/macos/Output/*.pkg
+
+      - name: Upload macOS installer
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v7
+        with:
+          name: MonkSynth-macOS-Setup
+          path: installer/macos/Output/*.pkg
+
       - name: Upload VST3
         uses: actions/upload-artifact@v7
         with:
@@ -295,18 +323,18 @@ jobs:
 
             ### Installation
 
+            - **macOS (Installer):** Run the `.pkg` installer — installs both VST3 and AU plugins
             - **Windows (Installer):** Run the `.exe` installer — installs the VST3 plugin automatically
+            - **macOS (Manual):** Extract VST3 to `~/Library/Audio/Plug-Ins/VST3/`, AU to `~/Library/Audio/Plug-Ins/Components/`
             - **Windows (Manual):** Extract and copy `MonkSynth.vst3` to `C:\Program Files\Common Files\VST3\`
-            - **macOS (VST3):** Extract and copy to `~/Library/Audio/Plug-Ins/VST3/`
-            - **macOS (AU):** Extract and copy to `~/Library/Audio/Plug-Ins/Components/`
             - **Linux (VST3):** Extract and copy to `~/.vst3/`
 
             ### Notes
             - Windows: unsigned — SmartScreen may show a warning. Click **More info** → **Run anyway**
-            - macOS build is Universal (arm64 + x86_64)
-            - macOS: signed with Developer ID
+            - macOS build is Universal (arm64 + x86_64), signed and notarized
             - Requires a DAW with VST3 support (or AU on macOS)
           files: |
+            artifacts/MonkSynth-macOS-Setup/*.pkg
             artifacts/MonkSynth-Windows-Setup/*.exe
             artifacts/MonkSynth-VST3-Windows/*.zip
             artifacts/MonkSynth-VST3-macOS/*.zip

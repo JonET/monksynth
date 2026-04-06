@@ -17,6 +17,9 @@ cpp/build/
 cpp/out/
 cpp/lib/
 
+# Installer output
+installer/*/Output/
+
 # VST3 SDK dirs (appear at repo root if VS opens the CMake solution)
 /build/
 /pluginterfaces/
