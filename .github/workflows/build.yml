@@ -99,11 +99,16 @@ jobs:
         working-directory: cpp
         shell: bash
         run: |
-          SIGNING_FLAGS=""
+          SIGNING_FLAGS=()
           if [ "$RUNNER_OS" = "macOS" ]; then
-            SIGNING_FLAGS='-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY=Developer ID Application -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE=Manual'
+            SIGNING_FLAGS=(
+              "-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY=Developer ID Application"
+              "-DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}"
+              "-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE=Manual"
+              "-DCMAKE_XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME=YES"
+            )
           fi
-          cmake -B build ${{ matrix.cmake_flags }} $SIGNING_FLAGS -DMONKSYNTH_VERSION_LABEL="${{ steps.version.outputs.label }}"
+          cmake -B build ${{ matrix.cmake_flags }} "${SIGNING_FLAGS[@]}" -DMONKSYNTH_VERSION_LABEL="${{ steps.version.outputs.label }}"
 
       - name: Build VST3
         working-directory: cpp
@@ -165,16 +170,29 @@ jobs:
 
       - name: Notarize VST3
         if: runner.os == 'macOS'
+        id: notarize_vst3
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          xcrun notarytool submit "${{ matrix.artifact_name }}.zip" \
+          RESULT=$(xcrun notarytool submit "${{ matrix.artifact_name }}.zip" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --wait 2>&1)
+          echo "$RESULT"
+          ID=$(echo "$RESULT" | grep '  id:' | head -1 | awk '{print $2}')
+          echo "submission_id=$ID" >> "$GITHUB_OUTPUT"
+
+          if echo "$RESULT" | grep -q "status: Invalid"; then
+            echo "::error::Notarization failed. Fetching log..."
+            xcrun notarytool log "$ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_ID_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID"
+            exit 1
+          fi
 
           cd "$(dirname "${{ steps.find_vst3.outputs.path }}")"
           xcrun stapler staple "MonkSynth.vst3"
@@ -185,16 +203,29 @@ jobs:
 
       - name: Notarize AU
         if: runner.os == 'macOS'
+        id: notarize_au
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          xcrun notarytool submit "MonkSynth-AU-macOS.zip" \
+          RESULT=$(xcrun notarytool submit "MonkSynth-AU-macOS.zip" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --wait 2>&1)
+          echo "$RESULT"
+          ID=$(echo "$RESULT" | grep '  id:' | head -1 | awk '{print $2}')
+          echo "submission_id=$ID" >> "$GITHUB_OUTPUT"
+
+          if echo "$RESULT" | grep -q "status: Invalid"; then
+            echo "::error::Notarization failed. Fetching log..."
+            xcrun notarytool log "$ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_ID_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID"
+            exit 1
+          fi
 
           cd "$(dirname "${{ steps.find_au.outputs.path }}")"
           xcrun stapler staple "MonkSynth.component"
