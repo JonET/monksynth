@@ -46,17 +46,21 @@ pkgbuild \
     "$WORK_DIR/MonkSynth-AU.pkg"
 
 # --- Build product installer ---
-SIGN_ARGS=""
 if [ -n "$SIGN_IDENTITY" ]; then
-    SIGN_ARGS="--sign $SIGN_IDENTITY"
+    productbuild \
+        --distribution "$SCRIPT_DIR/distribution.xml" \
+        --package-path "$WORK_DIR" \
+        --resources "$SCRIPT_DIR/resources" \
+        --version "$VERSION" \
+        --sign "$SIGN_IDENTITY" \
+        "$OUTPUT_DIR/MonkSynth-${VERSION}-macOS-Setup.pkg"
+else
+    productbuild \
+        --distribution "$SCRIPT_DIR/distribution.xml" \
+        --package-path "$WORK_DIR" \
+        --resources "$SCRIPT_DIR/resources" \
+        --version "$VERSION" \
+        "$OUTPUT_DIR/MonkSynth-${VERSION}-macOS-Setup.pkg"
 fi
-
-productbuild \
-    --distribution "$SCRIPT_DIR/distribution.xml" \
-    --package-path "$WORK_DIR" \
-    --resources "$SCRIPT_DIR/resources" \
-    --version "$VERSION" \
-    $SIGN_ARGS \
-    "$OUTPUT_DIR/MonkSynth-${VERSION}-macOS-Setup.pkg"
 
 echo "Installer built: $OUTPUT_DIR/MonkSynth-${VERSION}-macOS-Setup.pkg"
