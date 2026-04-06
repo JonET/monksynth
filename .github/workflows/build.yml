@@ -69,9 +69,14 @@ jobs:
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PWD" $KEYCHAIN_PATH
 
-          security import $CERTIFICATE_PATH -P "$MACOS_CERTIFICATE_PWD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PWD" $KEYCHAIN_PATH
+          security import $CERTIFICATE_PATH -P "$MACOS_CERTIFICATE_PWD" -A -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple:,productbuild: -k "$KEYCHAIN_PWD" $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
+
+          echo "=== Codesigning identities ==="
+          security find-identity -v -p codesigning
+          echo "=== All valid identities ==="
+          security find-identity -v
 
       - name: Extract version label
         id: version
