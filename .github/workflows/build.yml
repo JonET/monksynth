@@ -87,6 +87,14 @@ jobs:
           echo "label=$LABEL" >> "$GITHUB_OUTPUT"
           echo "Version label: $LABEL"
 
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="0.0.0-dev"
+          fi
+          echo "number=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version number: $VERSION"
+
       - name: Configure
         working-directory: cpp
         shell: bash
@@ -132,6 +140,21 @@ jobs:
           else
             zip -r "$GITHUB_WORKSPACE/${{ matrix.artifact_name }}.zip" "MonkSynth.vst3"
           fi
+
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p installer/windows/staging
+          cp -r "${{ steps.find_vst3.outputs.path }}" installer/windows/staging/MonkSynth.vst3
+          iscc //DMyAppVersion="${{ steps.version.outputs.number }}" installer/windows/MonkSynth.iss
+
+      - name: Upload Windows installer
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: MonkSynth-Windows-Setup
+          path: installer/windows/Output/*.exe
 
       - name: Package AU
         if: runner.os == 'macOS'
@@ -222,7 +245,8 @@ jobs:
 
             ### Installation
 
-            - **Windows (VST3):** Extract and copy `MonkSynth.vst3` to `C:\Program Files\Common Files\VST3\`
+            - **Windows (Installer):** Run the `.exe` installer — installs the VST3 plugin automatically
+            - **Windows (Manual):** Extract and copy `MonkSynth.vst3` to `C:\Program Files\Common Files\VST3\`
             - **macOS (VST3):** Extract and copy to `~/Library/Audio/Plug-Ins/VST3/`
             - **macOS (AU):** Extract and copy to `~/Library/Audio/Plug-Ins/Components/`
             - **Linux (VST3):** Extract and copy to `~/.vst3/`
@@ -232,6 +256,7 @@ jobs:
             - macOS: signed with Developer ID
             - Requires a DAW with VST3 support (or AU on macOS)
           files: |
+            artifacts/MonkSynth-Windows-Setup/*.exe
             artifacts/MonkSynth-VST3-Windows/*.zip
             artifacts/MonkSynth-VST3-macOS/*.zip
             artifacts/MonkSynth-AU-macOS/*.zip
