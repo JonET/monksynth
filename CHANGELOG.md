@@ -4,6 +4,8 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0-beta.3] - 2026-04-07
+
 ### Added
 - Info screen accessible via "?" button — shows version, license, creator, and link to GitHub
 - Clickable URL on the setup screen (audionerdz.nl download link)
@@ -12,6 +14,7 @@ All notable changes to MonkSynth will be documented in this file.
 
 ### Fixed
 - Build now defaults to Release when no `CMAKE_BUILD_TYPE` is specified, fixing build failures with the VST3 SDK
+- Linux: UI event handling after skin import (deferred UI recreation)
 
 ## [0.2.0-beta.2] - 2026-04-05
 
@@ -41,6 +44,7 @@ All notable changes to MonkSynth will be documented in this file.
 - 5 factory presets
 - CI/CD with cross-platform builds (Windows, macOS, Linux)
 
-[Unreleased]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.2...HEAD
+[Unreleased]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.3...HEAD
+[0.2.0-beta.3]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.2...v0.2.0-beta.3
 [0.2.0-beta.2]: https://github.com/JonET/monksynth/compare/v0.0.1-beta.1...v0.2.0-beta.2
 [0.0.1-beta.1]: https://github.com/JonET/monksynth/releases/tag/v0.0.1-beta.1
