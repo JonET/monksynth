@@ -1,5 +1,7 @@
 #include "controller.h"
 #include "dll_extractor.h"
+#include "info_button.h"
+#include "info_view.h"
 #include "monk_view.h"
 #include "plugin_cids.h"
 #include "setup_view.h"
@@ -42,6 +44,15 @@ CView *Controller::createCustomView(UTF8StringPtr name, const UIAttributes & /*a
     if (UTF8StringView(name) == "XYPad") {
         return new XYPadView(CRect(0, 0, 100, 100), nullptr, this);
     }
+    if (UTF8StringView(name) == "InfoButton") {
+        auto *btn = new InfoButton(CRect(0, 0, 25, 25));
+        btn->setClickCallback([this]() {
+            if (currentEditor_)
+                showInfoOverlay(currentEditor_);
+        });
+        infoButton_ = btn;
+        return btn;
+    }
     return nullptr;
 }
 
@@ -53,6 +64,8 @@ void Controller::didOpen(VST3Editor *editor) {
     if (!themeManager_.hasTheme()) {
         showSetupOverlay(editor);
     }
+
+    // Info button callback is set in createCustomView using currentEditor_
 }
 
 void Controller::showSetupOverlay(VST3Editor *editor) {
@@ -80,11 +93,16 @@ void Controller::showSetupOverlay(VST3Editor *editor) {
 
             if (result.success) {
                 themeManager_.setThemePath(result.themeDir);
-                auto *desc = themedEditor->getUIDescription();
-                if (desc)
-                    desc->freePlatformResources();
-                applyTheme(themedEditor);
-                themedEditor->recreateUI();
+                // Defer UI recreation until after the file selector callback
+                // returns — recreating views inside the callback causes
+                // broken event handling on Linux.
+                Call::later([this, themedEditor]() {
+                    auto *desc = themedEditor->getUIDescription();
+                    if (desc)
+                        desc->freePlatformResources();
+                    applyTheme(themedEditor);
+                    themedEditor->recreateUI();
+                });
             } else {
                 setup->setStatusText(result.error);
             }
@@ -95,8 +113,19 @@ void Controller::showSetupOverlay(VST3Editor *editor) {
     frame->addView(setup);
 }
 
+void Controller::showInfoOverlay(VST3Editor *editor) {
+    auto *frame = editor->getFrame();
+    if (!frame)
+        return;
+
+    auto *info = new InfoView(CRect(0, 0, 360, 510));
+    info->setCloseCallback([frame, info]() { frame->removeView(info); });
+    frame->addView(info);
+}
+
 void Controller::willClose(VST3Editor * /*editor*/) {
     monkView_ = nullptr;
+    infoButton_ = nullptr;
     currentEditor_ = nullptr;
 }
 

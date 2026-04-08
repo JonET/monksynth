@@ -3,21 +3,17 @@
 #include "vstgui/lib/cviewcontainer.h"
 
 #include <functional>
-#include <string>
 
 namespace MonkSynth {
 
-// First-run setup overlay. Drawn with VSTGUI primitives only (no bitmap assets).
-// Prompts the user to import the classic skin from the original Delay Lama DLL.
-class SetupView : public VSTGUI::CViewContainer {
+// Info overlay shown when the user clicks the "?" button.
+// Displays project info, license, creator credit, and links.
+class InfoView : public VSTGUI::CViewContainer {
   public:
-    SetupView(const VSTGUI::CRect &size);
+    InfoView(const VSTGUI::CRect &size);
 
-    using ImportCallback = std::function<void()>;
-
-    void setImportCallback(ImportCallback cb) { importCb_ = std::move(cb); }
-
-    void setStatusText(const std::string &text);
+    using CloseCallback = std::function<void()>;
+    void setCloseCallback(CloseCallback cb) { closeCb_ = std::move(cb); }
 
     void drawBackgroundRect(VSTGUI::CDrawContext *ctx, const VSTGUI::CRect &rect) override;
     VSTGUI::CMouseEventResult onMouseDown(VSTGUI::CPoint &where,
@@ -28,10 +24,9 @@ class SetupView : public VSTGUI::CViewContainer {
                                             const VSTGUI::CButtonState &buttons) override;
 
   private:
-    VSTGUI::CRect importBtnRect_;
-    VSTGUI::CRect urlLinkRect_;
-    std::string statusText_;
-    ImportCallback importCb_;
+    VSTGUI::CRect closeBtnRect_;
+    VSTGUI::CRect githubLinkRect_;
+    CloseCallback closeCb_;
 };
 
 } // namespace MonkSynth

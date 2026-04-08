@@ -1,4 +1,5 @@
 #include "setup_view.h"
+#include "open_url.h"
 #include "version.h"
 
 #include "vstgui/lib/cdrawcontext.h"
@@ -55,6 +56,7 @@ void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
 
     auto *titleFont = new CFontDesc("Arial", 24, kBoldFace);
     auto *bodyFont = new CFontDesc("Arial", 13);
+    auto *linkFont = new CFontDesc("Arial", 13, kUnderlineFace);
     auto *smallFont = new CFontDesc("Arial", 11);
     auto *btnFont = new CFontDesc("Arial", 14, kBoldFace);
 
@@ -81,13 +83,32 @@ void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
         "original Delay Lama v1.1 plugin (Windows).",
         "",
         "Download it for free from:",
-        "www.audionerdz.nl/download.htm",
+    };
+    double lineY = bounds.top + 130;
+    for (const char *line : lines) {
+        CRect lr(bounds.left + 20, lineY, bounds.right - 20, lineY + 18);
+        ctx->drawString(line, lr, kCenterText);
+        lineY += 19;
+    }
+
+    // Clickable URL link
+    ctx->setFont(linkFont);
+    ctx->setFontColor(CColor(130, 170, 255, 255));
+    CRect linkRect(bounds.left + 20, lineY, bounds.right - 20, lineY + 18);
+    ctx->drawString("www.audionerdz.nl/download.htm", linkRect, kCenterText);
+    urlLinkRect_ = linkRect;
+    urlLinkRect_.offset(-bounds.left, -bounds.top);
+    lineY += 19;
+
+    // Remaining body text
+    ctx->setFont(bodyFont);
+    ctx->setFontColor(CColor(190, 190, 190, 255));
+    const char *lines2[] = {
         "",
         "Then click below and select the",
         "\"Delay Lama.dll\" file.",
     };
-    double lineY = bounds.top + 130;
-    for (const char *line : lines) {
+    for (const char *line : lines2) {
         CRect lr(bounds.left + 20, lineY, bounds.right - 20, lineY + 18);
         ctx->drawString(line, lr, kCenterText);
         lineY += 19;
@@ -119,6 +140,7 @@ void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
 
     titleFont->forget();
     bodyFont->forget();
+    linkFont->forget();
     smallFont->forget();
     btnFont->forget();
 }
@@ -137,7 +159,34 @@ CMouseEventResult SetupView::onMouseDown(CPoint &where, const CButtonState &butt
         return kMouseEventHandled;
     }
 
+    if (urlLinkRect_.pointInside(local)) {
+        openURL("http://www.audionerdz.nl/download.htm");
+        return kMouseEventHandled;
+    }
+
     return kMouseEventNotHandled;
+}
+
+CMouseEventResult SetupView::onMouseMoved(CPoint &where, const CButtonState & /*buttons*/) {
+    CRect bounds = getViewSize();
+    CPoint local = where;
+    local.offset(-bounds.left, -bounds.top);
+
+    auto *frame = getFrame();
+    if (frame) {
+        if (importBtnRect_.pointInside(local) || urlLinkRect_.pointInside(local))
+            frame->setCursor(kCursorHand);
+        else
+            frame->setCursor(kCursorDefault);
+    }
+    return kMouseEventHandled;
+}
+
+CMouseEventResult SetupView::onMouseExited(CPoint & /*where*/, const CButtonState & /*buttons*/) {
+    auto *frame = getFrame();
+    if (frame)
+        frame->setCursor(kCursorDefault);
+    return kMouseEventHandled;
 }
 
 } // namespace MonkSynth

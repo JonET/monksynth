@@ -11,6 +11,7 @@
 namespace MonkSynth {
 
 class Controller;
+class InfoButton;
 class MonkView;
 
 // Subclass that applies theme bitmaps before views are created, so that
@@ -89,8 +90,10 @@ class Controller : public Steinberg::Vst::EditController, public VSTGUI::VST3Edi
   private:
     void applyTheme(VST3Editor *editor);
     void showSetupOverlay(VST3Editor *editor);
+    void showInfoOverlay(VST3Editor *editor);
 
     MonkView *monkView_ = nullptr;
+    InfoButton *infoButton_ = nullptr;
     VST3Editor *currentEditor_ = nullptr;
     ThemeManager themeManager_;
     int noteRefCount_ = 0; // tracks active touches on vowel/pitch controls

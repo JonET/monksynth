@@ -62,7 +62,7 @@
 			},
 			"FocusDrawing": {},
 			"VST3Editor": {
-				"Path": "C:\\code\\open-delay-llama\\cpp\\resources\\editor.uidesc"
+				"Path": "/home/jonathan/code/monksynth/cpp/resources/editor.uidesc"
 			},
 			"UIGridController": {
 				"Grids": "1x 1,5x 5,10x 10,12x 12,15x 15",
@@ -101,6 +101,18 @@
 							"opacity": "1",
 							"origin": "22, 4",
 							"size": "311, 311",
+							"transparent": "true",
+							"wants-focus": "false"
+						}
+					},
+					"CView": {
+						"attributes": {
+							"class": "CView",
+							"custom-view-name": "InfoButton",
+							"mouse-enabled": "true",
+							"opacity": "1",
+							"origin": "285, 298",
+							"size": "39, 35",
 							"transparent": "true",
 							"wants-focus": "false"
 						}

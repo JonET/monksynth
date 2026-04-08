@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 project(MonkSynth VERSION 0.0.1)
 
+# Default to Release if no build type specified (the VST3 SDK requires one of
+# DEVELOPMENT, RELEASE, _DEBUG, or NDEBUG to be defined).
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
@@ -60,6 +66,12 @@ smtg_add_vst3plugin(MonkSynth
     src/dll_extractor.cpp
     src/setup_view.h
     src/setup_view.cpp
+    src/info_view.h
+    src/info_view.cpp
+    src/info_button.h
+    src/info_button.cpp
+    src/open_url.h
+    src/open_url.cpp
     src/stb_impl.c
     ${DSP_DIR}/voice.c
     ${DSP_DIR}/delay.c
