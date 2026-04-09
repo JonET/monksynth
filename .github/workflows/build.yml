@@ -22,7 +22,7 @@ jobs:
             artifact_name: MonkSynth-VST3-macOS
           - os: ubuntu-22.04
             name: Linux
-            cmake_flags: "-DCMAKE_BUILD_TYPE=Release"
+            cmake_flags: "-DCMAKE_BUILD_TYPE=Release -DMONKSYNTH_STATIC_LINUX_DEPS=ON -DMONKSYNTH_STATIC_PREFIX=/opt/monksynth-deps"
             artifact_name: MonkSynth-VST3-Linux
 
     runs-on: ${{ matrix.os }}
@@ -40,7 +40,22 @@ jobs:
             libxcb-cursor-dev libxcb-keysyms1-dev libxcb-xkb-dev \
             libxkbcommon-dev libxkbcommon-x11-dev libfontconfig1-dev \
             libcairo2-dev libgtkmm-3.0-dev libsqlite3-dev libxcb-util0-dev \
-            patchelf
+            libxcb-render0-dev libxcb-shm0-dev libxrender-dev \
+            libexpat1-dev libpng-dev zlib1g-dev libbz2-dev \
+            meson ninja-build python3-pip autoconf automake libtool
+
+      - name: Cache static dependencies
+        if: runner.os == 'Linux'
+        id: cache-static-deps
+        uses: actions/cache@v5
+        with:
+          path: /opt/monksynth-deps
+          key: static-deps-${{ hashFiles('cpp/scripts/build-static-deps.sh') }}
+
+      - name: Build static dependencies
+        if: runner.os == 'Linux' && steps.cache-static-deps.outputs.cache-hit != 'true'
+        run: |
+          sudo cpp/scripts/build-static-deps.sh /opt/monksynth-deps
 
       - name: Install AudioUnit SDK (macOS)
         if: runner.os == 'macOS'
@@ -52,7 +67,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: cpp/build/_deps
-          key: vst3sdk-v3.8.0_build_66-${{ runner.os }}
+          key: vst3sdk-v3.8.0_build_66-${{ runner.os }}-${{ hashFiles('cpp/patches/*.patch') }}
 
       - name: Import code signing certificate
         if: runner.os == 'macOS'
@@ -147,42 +162,22 @@ jobs:
           echo "path=$AU" >> "$GITHUB_OUTPUT"
           echo "Found AU at: $AU"
 
-      - name: Bundle Linux shared libraries
+      - name: Verify Linux static linking
         if: runner.os == 'Linux'
         run: |
           PLUGIN_SO="${{ steps.find_vst3.outputs.path }}/Contents/x86_64-linux/MonkSynth.so"
-          PLUGIN_DIR=$(dirname "$PLUGIN_SO")
-
-          # Collect shared libraries that aren't part of the base system.
-          # We keep: libc, libm, libdl, libpthread, librt, libgcc_s, libstdc++,
-          # ld-linux, and libX11/libxcb core (virtually always present).
-          # Everything else gets bundled.
-          SYSTEM_LIBS="linux-vdso|ld-linux|libc\.|libm\.|libdl\.|libpthread\.|librt\.|libgcc_s|libstdc\+\+"
-
-          echo "=== Dependencies before bundling ==="
+          echo "=== Dynamic dependencies ==="
           ldd "$PLUGIN_SO"
-
-          # Copy non-system libs into the plugin directory
-          ldd "$PLUGIN_SO" | grep "=> /" | awk '{print $3}' | while read -r lib; do
-            name=$(basename "$lib")
-            # Skip core system libraries
-            if echo "$name" | grep -qE "^($SYSTEM_LIBS)"; then
-              echo "SKIP (system): $name"
-              continue
-            fi
-            echo "BUNDLE: $name"
-            cp "$lib" "$PLUGIN_DIR/$name"
-          done
-
-          # Set RPATH so the plugin finds bundled libs next to itself
-          patchelf --set-rpath '$ORIGIN' "$PLUGIN_SO"
-
           echo ""
-          echo "=== Bundled libraries ==="
-          ls -la "$PLUGIN_DIR"/*.so* 2>/dev/null || echo "(none)"
+          echo "=== Exported symbols ==="
+          nm -D "$PLUGIN_SO" | grep " T " || true
           echo ""
-          echo "=== RPATH ==="
-          patchelf --print-rpath "$PLUGIN_SO"
+          # Fail if any non-system shared libs are still dynamically linked
+          if ldd "$PLUGIN_SO" | grep -qE "lib(cairo|pango|harfbuzz|fontconfig|glib|gobject|fribidi|pixman|xcb-cursor|xcb-util|xcb-keysyms|xkbcommon)"; then
+            echo "::error::Plugin still dynamically links GUI libraries!"
+            exit 1
+          fi
+          echo "Static linking verified."
 
       - name: Sign macOS bundles
         if: runner.os == 'macOS'

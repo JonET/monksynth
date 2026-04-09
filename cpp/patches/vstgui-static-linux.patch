@@ -1,0 +1,113 @@
+--- a/vstgui4/vstgui/CMakeLists.txt	2026-04-08 21:08:17.160565508 -0500
++++ b/vstgui4/vstgui/CMakeLists.txt	2026-04-08 21:08:53.631897593 -0500
+@@ -55,7 +55,9 @@
+ if(LINUX)
+     set(THREADS_PREFER_PTHREAD_FLAG ON)
+     find_package(Threads REQUIRED)
+-    find_package (Wayland REQUIRED COMPONENTS client server protocols)
++    if(NOT MONKSYNTH_STATIC_LINUX_DEPS)
++        find_package(Wayland REQUIRED COMPONENTS client server protocols)
++    endif()
+     find_package(X11 REQUIRED)
+     find_package(Freetype REQUIRED)
+     find_package(PkgConfig REQUIRED)
+@@ -70,24 +72,81 @@
+     pkg_check_modules(CAIRO REQUIRED cairo)
+     pkg_check_modules(PANGO REQUIRED pangocairo pangoft2)
+     pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
+-    set(LINUX_LIBRARIES
+-        ${X11_LIBRARIES}
+-        ${FREETYPE_LIBRARIES}
+-        ${LIBXCB_LIBRARIES}
+-        ${LIBXCB_UTIL_LIBRARIES}
+-        ${LIBXCB_CURSOR_LIBRARIES}
+-        ${LIBXCB_KEYSYMS_LIBRARIES}
+-        ${LIBXCB_XKB_LIBRARIES}
+-        ${LIBXKB_COMMON_LIBRARIES}
+-        ${LIBXKB_COMMON_X11_LIBRARIES}
+-        ${GLIB_LIBRARIES}
+-        ${CAIRO_LIBRARIES}
+-        ${PANGO_LIBRARIES}
+-        ${FONTCONFIG_LIBRARIES}
+-        Threads::Threads
+-        dl
+-        vstgui_wayland_protocols
+-    )
++
++    if(MONKSYNTH_STATIC_LINUX_DEPS)
++        # Static linking: find .a archives in the static-deps prefix and
++        # link them in a --start-group/--end-group block so the linker can
++        # resolve the circular dependencies (harfbuzz <-> freetype, etc.).
++        set(_SP "${MONKSYNTH_STATIC_PREFIX}/lib")
++
++        macro(_find_static VAR NAME)
++            find_library(${VAR} NAMES "lib${NAME}.a" PATHS "${_SP}" NO_DEFAULT_PATH)
++            if(NOT ${VAR})
++                find_library(${VAR} NAMES "lib${NAME}.a")
++            endif()
++            if(NOT ${VAR})
++                message(FATAL_ERROR "Static library not found: lib${NAME}.a (looked in ${_SP})")
++            endif()
++        endmacro()
++
++        _find_static(PANGO_S        pangocairo-1.0)
++        _find_static(PANGOFT2_S     pangoft2-1.0)
++        _find_static(PANGO_CORE_S   pango-1.0)
++        _find_static(CAIRO_S        cairo)
++        _find_static(HARFBUZZ_S     harfbuzz)
++        _find_static(FONTCONFIG_S   fontconfig)
++        _find_static(FREETYPE_S     freetype)
++        _find_static(GLIB_S         glib-2.0)
++        _find_static(GOBJECT_S      gobject-2.0)
++        _find_static(FRIBIDI_S      fribidi)
++        _find_static(PIXMAN_S       pixman-1)
++        _find_static(PCRE2_S        pcre2-8)
++        _find_static(FFI_S          ffi)
++        _find_static(XCB_UTIL_S     xcb-util)
++        _find_static(XCB_CURSOR_S   xcb-cursor)
++        _find_static(XCB_IMAGE_S    xcb-image)
++        _find_static(XCB_RENDER_U_S xcb-render-util)
++        _find_static(XCB_KEYSYMS_S  xcb-keysyms)
++        _find_static(XKBCOMMON_S    xkbcommon)
++        _find_static(XKBCOMMON_X11_S xkbcommon-x11)
++
++        set(LINUX_LIBRARIES
++            -Wl,--start-group
++            ${PANGO_S} ${PANGOFT2_S} ${PANGO_CORE_S}
++            ${CAIRO_S} ${HARFBUZZ_S} ${FONTCONFIG_S} ${FREETYPE_S}
++            ${GLIB_S} ${GOBJECT_S} ${FRIBIDI_S} ${PIXMAN_S}
++            ${PCRE2_S} ${FFI_S}
++            ${XCB_CURSOR_S} ${XCB_IMAGE_S} ${XCB_RENDER_U_S}
++            ${XCB_UTIL_S} ${XCB_KEYSYMS_S}
++            ${XKBCOMMON_S} ${XKBCOMMON_X11_S}
++            -Wl,--end-group
++            ${X11_LIBRARIES}
++            xcb xcb-xkb xcb-render xcb-shm
++            Xrender
++            expat png z bz2
++            Threads::Threads
++            dl
++        )
++    else()
++        set(LINUX_LIBRARIES
++            ${X11_LIBRARIES}
++            ${FREETYPE_LIBRARIES}
++            ${LIBXCB_LIBRARIES}
++            ${LIBXCB_UTIL_LIBRARIES}
++            ${LIBXCB_CURSOR_LIBRARIES}
++            ${LIBXCB_KEYSYMS_LIBRARIES}
++            ${LIBXCB_XKB_LIBRARIES}
++            ${LIBXKB_COMMON_LIBRARIES}
++            ${LIBXKB_COMMON_X11_LIBRARIES}
++            ${GLIB_LIBRARIES}
++            ${CAIRO_LIBRARIES}
++            ${PANGO_LIBRARIES}
++            ${FONTCONFIG_LIBRARIES}
++            Threads::Threads
++            dl
++            vstgui_wayland_protocols
++        )
++    endif()
+ endif()
+ 
+ ##########################################################################################
