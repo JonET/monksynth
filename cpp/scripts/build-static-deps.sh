@@ -19,6 +19,11 @@ export CXXFLAGS="-fPIC -O2"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/lib/x86_64-linux-gnu/pkgconfig:$PREFIX/share/pkgconfig"
 export PATH="$PREFIX/bin:$PATH"
 
+# Ensure a recent meson (system packages on Ubuntu 22.04 are too old for
+# newer glib/pango/cairo).
+pip3 install --quiet --break-system-packages meson ninja 2>/dev/null \
+    || pip3 install --quiet meson ninja
+
 # ---------------------------------------------------------------------------
 # Versions
 # ---------------------------------------------------------------------------
