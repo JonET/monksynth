@@ -12,14 +12,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - os: windows-latest
-          #   name: Windows
-          #   cmake_flags: ""
-          #   artifact_name: MonkSynth-VST3-Windows
-          # - os: macos-latest
-          #   name: macOS
-          #   cmake_flags: '-G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DSMTG_AUDIOUNIT_SDK_PATH=/tmp/AudioUnitSDK-AudioUnitSDK-1.1.0 -DSMTG_CODE_SIGN_IDENTITY_MAC="-"'
-          #   artifact_name: MonkSynth-VST3-macOS
+          - os: windows-latest
+            name: Windows
+            cmake_flags: ""
+            artifact_name: MonkSynth-VST3-Windows
+          - os: macos-latest
+            name: macOS
+            cmake_flags: '-G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DSMTG_AUDIOUNIT_SDK_PATH=/tmp/AudioUnitSDK-AudioUnitSDK-1.1.0 -DSMTG_CODE_SIGN_IDENTITY_MAC="-"'
+            artifact_name: MonkSynth-VST3-macOS
           - os: ubuntu-22.04
             name: Linux
             cmake_flags: "-DCMAKE_BUILD_TYPE=Release -DMONKSYNTH_STATIC_LINUX_DEPS=ON -DMONKSYNTH_STATIC_PREFIX=/opt/monksynth-deps"
