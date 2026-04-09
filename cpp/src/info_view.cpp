@@ -9,6 +9,14 @@
 #include "vstgui/lib/cstring.h"
 #include "vstgui/lib/cvstguitimer.h"
 
+#if __linux__
+#define MONKSYNTH_FONT "DejaVu Sans"
+#elif __APPLE__
+#define MONKSYNTH_FONT "Helvetica"
+#else
+#define MONKSYNTH_FONT "Arial"
+#endif
+
 using namespace VSTGUI;
 
 namespace MonkSynth {
@@ -47,11 +55,11 @@ void InfoView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     ctx->setFillColor(CColor(200, 150, 50, 255));
     ctx->drawRect(accent, kDrawFilled);
 
-    auto *titleFont = new CFontDesc("Arial", 24, kBoldFace);
-    auto *bodyFont = new CFontDesc("Arial", 13);
-    auto *smallFont = new CFontDesc("Arial", 11);
-    auto *btnFont = new CFontDesc("Arial", 14, kBoldFace);
-    auto *linkFont = new CFontDesc("Arial", 13, kUnderlineFace);
+    auto *titleFont = new CFontDesc(MONKSYNTH_FONT, 24, kBoldFace);
+    auto *bodyFont = new CFontDesc(MONKSYNTH_FONT, 13);
+    auto *smallFont = new CFontDesc(MONKSYNTH_FONT, 11);
+    auto *btnFont = new CFontDesc(MONKSYNTH_FONT, 14, kBoldFace);
+    auto *linkFont = new CFontDesc(MONKSYNTH_FONT, 13, kUnderlineFace);
 
     // Title
     ctx->setFont(titleFont);
