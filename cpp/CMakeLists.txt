@@ -54,6 +54,16 @@ set(public_sdk_SOURCE_DIR "${vst3sdk_SOURCE_DIR}/public.sdk")
 
 # --- Version header ---
 set(MONKSYNTH_VERSION_LABEL "dev" CACHE STRING "Version label (e.g. beta.1, rc.1, release)")
+set(MONKSYNTH_VERSION_NUMBER "" CACHE STRING "Override version (e.g. 0.2.0), derived from git tag in CI")
+if(MONKSYNTH_VERSION_NUMBER)
+    set(MONKSYNTH_VERSION "${MONKSYNTH_VERSION_NUMBER}")
+else()
+    set(MONKSYNTH_VERSION "${PROJECT_VERSION}")
+endif()
+string(REPLACE "." ";" _ver_parts "${MONKSYNTH_VERSION}")
+list(GET _ver_parts 0 MONKSYNTH_VERSION_MAJOR)
+list(GET _ver_parts 1 MONKSYNTH_VERSION_MINOR)
+list(GET _ver_parts 2 MONKSYNTH_VERSION_PATCH)
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/version.h"

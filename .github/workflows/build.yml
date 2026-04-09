@@ -127,14 +127,19 @@ jobs:
           else
             VERSION="0.0.0-dev"
           fi
+          SEMVER="${VERSION%%-*}"
           echo "number=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
           echo "Version number: $VERSION"
+          echo "Semver: $SEMVER"
 
       - name: Configure
         working-directory: cpp
         shell: bash
         run: |
-          cmake -B build ${{ matrix.cmake_flags }} -DMONKSYNTH_VERSION_LABEL="${{ steps.version.outputs.label }}"
+          cmake -B build ${{ matrix.cmake_flags }} \
+            -DMONKSYNTH_VERSION_LABEL="${{ steps.version.outputs.label }}" \
+            -DMONKSYNTH_VERSION_NUMBER="${{ steps.version.outputs.semver }}"
 
       - name: Build VST3
         working-directory: cpp
@@ -366,33 +371,55 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: CHANGELOG.md
+          sparse-checkout-cone-mode: false
+
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
           path: artifacts
+
+      - name: Build release notes
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          # Extract the changelog section for this version
+          awk -v ver="$TAG" '
+            /^## \[/ {
+              if (found) exit
+              if (index($0, "[" ver "]")) found=1
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+
+          cat >> release_notes.md <<'EOF'
+
+          ---
+
+          ### Installation
+
+          - **macOS (Installer):** Run the `.pkg` installer — installs both VST3 and AU plugins
+          - **Windows (Installer):** Run the `.exe` installer — installs the VST3 plugin automatically
+          - **macOS (Manual):** Extract VST3 to `~/Library/Audio/Plug-Ins/VST3/`, AU to `~/Library/Audio/Plug-Ins/Components/`
+          - **Windows (Manual):** Extract and copy `MonkSynth.vst3` to `C:\Program Files\Common Files\VST3\`
+          - **Linux (VST3):** Extract and copy to `~/.vst3/`
+
+          ### Notes
+          - Windows: unsigned — SmartScreen may show a warning. Click **More info** → **Run anyway**
+          - macOS build is Universal (arm64 + x86_64), signed and notarized
+          - Requires a DAW with VST3 support (or AU on macOS)
+          EOF
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
           name: "MonkSynth ${{ github.ref_name }} (Beta)"
-          body: |
-            ## MonkSynth ${{ github.ref_name }} Beta Release
-
-            Pre-release beta build for testing. Please report issues!
-
-            ### Installation
-
-            - **macOS (Installer):** Run the `.pkg` installer — installs both VST3 and AU plugins
-            - **Windows (Installer):** Run the `.exe` installer — installs the VST3 plugin automatically
-            - **macOS (Manual):** Extract VST3 to `~/Library/Audio/Plug-Ins/VST3/`, AU to `~/Library/Audio/Plug-Ins/Components/`
-            - **Windows (Manual):** Extract and copy `MonkSynth.vst3` to `C:\Program Files\Common Files\VST3\`
-            - **Linux (VST3):** Extract and copy to `~/.vst3/`
-
-            ### Notes
-            - Windows: unsigned — SmartScreen may show a warning. Click **More info** → **Run anyway**
-            - macOS build is Universal (arm64 + x86_64), signed and notarized
-            - Requires a DAW with VST3 support (or AU on macOS)
+          body_path: release_notes.md
           files: |
             artifacts/MonkSynth-macOS-Setup/*.pkg
             artifacts/MonkSynth-Windows-Setup/*.exe
