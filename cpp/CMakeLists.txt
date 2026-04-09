@@ -28,13 +28,14 @@ include(FetchContent)
 # Patch VSTGUI to support static linking of Linux GUI dependencies.
 # The patch adds a conditional block guarded by MONKSYNTH_STATIC_LINUX_DEPS,
 # so it is harmless on macOS/Windows where that option is never set.
-# "|| true" handles re-runs where the patch is already applied.
+# We use cmake -E env to ensure cross-platform shell compatibility, and
+# check first whether the patch has already been applied.
 FetchContent_Declare(vst3sdk
     GIT_REPOSITORY https://github.com/steinbergmedia/vst3sdk.git
     GIT_TAG        v3.8.0_build_66
     GIT_SHALLOW    TRUE
     GIT_SUBMODULES_RECURSE TRUE
-    PATCH_COMMAND git apply "${CMAKE_CURRENT_SOURCE_DIR}/patches/vstgui-static-linux.patch" || true
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_SOURCE_DIR}/patches/apply-patch.cmake"
 )
 set(SMTG_ENABLE_VSTGUI_SUPPORT ON CACHE BOOL "" FORCE)
 set(SMTG_ADD_VST3_PLUGINS_SAMPLES OFF CACHE BOOL "" FORCE)
