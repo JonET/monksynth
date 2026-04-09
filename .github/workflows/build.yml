@@ -42,7 +42,7 @@ jobs:
             libcairo2-dev libgtkmm-3.0-dev libsqlite3-dev libxcb-util0-dev \
             libxcb-render0-dev libxcb-shm0-dev libxrender-dev \
             libexpat1-dev libpng-dev zlib1g-dev libbz2-dev \
-            meson ninja-build python3-pip autoconf automake libtool
+            ninja-build python3-pip autoconf automake libtool
 
       - name: Cache static dependencies
         if: runner.os == 'Linux'

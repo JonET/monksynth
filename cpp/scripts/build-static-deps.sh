@@ -20,12 +20,13 @@ export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/lib/x86_64-linux-gnu/pkgco
 export PATH="$PREFIX/bin:$PATH"
 
 # Ensure a recent meson (system packages on Ubuntu 22.04 are too old for
-# newer glib/pango/cairo).
-pip3 install --quiet --break-system-packages meson ninja 2>/dev/null \
-    || pip3 install --quiet meson ninja
-# pip3 may install to /usr/local/bin or ~/.local/bin depending on context
-export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
-echo "Using meson: $(which meson) version $(meson --version)"
+# newer glib/pango/cairo).  We must put /usr/local/bin BEFORE /usr/bin
+# so pip3's meson wins over the system package.
+pip3 install --break-system-packages meson ninja 2>/dev/null \
+    || pip3 install meson ninja
+export PATH="/usr/local/bin:$PATH"
+hash -r
+echo "Using meson: $(command -v meson) version $(meson --version)"
 
 # ---------------------------------------------------------------------------
 # Versions
