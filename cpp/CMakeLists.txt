@@ -18,13 +18,23 @@ if(APPLE)
     add_compile_options(-Wno-deprecated-declarations)
 endif()
 
+# --- Linux static linking option ---
+option(MONKSYNTH_STATIC_LINUX_DEPS "Statically link Linux GUI dependencies" OFF)
+set(MONKSYNTH_STATIC_PREFIX "" CACHE PATH "Install prefix for static dependencies")
+
 # --- Fetch VST3 SDK ---
 include(FetchContent)
+
+# Patch VSTGUI to support static linking of Linux GUI dependencies.
+# The patch adds a conditional block guarded by MONKSYNTH_STATIC_LINUX_DEPS,
+# so it is harmless on macOS/Windows where that option is never set.
+# "|| true" handles re-runs where the patch is already applied.
 FetchContent_Declare(vst3sdk
     GIT_REPOSITORY https://github.com/steinbergmedia/vst3sdk.git
     GIT_TAG        v3.8.0_build_66
     GIT_SHALLOW    TRUE
     GIT_SUBMODULES_RECURSE TRUE
+    PATCH_COMMAND git apply "${CMAKE_CURRENT_SOURCE_DIR}/patches/vstgui-static-linux.patch" || true
 )
 set(SMTG_ENABLE_VSTGUI_SUPPORT ON CACHE BOOL "" FORCE)
 set(SMTG_ADD_VST3_PLUGINS_SAMPLES OFF CACHE BOOL "" FORCE)
@@ -32,6 +42,9 @@ set(SMTG_ADD_VST3_HOSTING_SAMPLES OFF CACHE BOOL "" FORCE)
 set(SMTG_RUN_VST_VALIDATOR OFF CACHE BOOL "" FORCE)
 if(APPLE)
     set(SMTG_ENABLE_AUV2_BUILDS ON CACHE BOOL "" FORCE)
+endif()
+if(MONKSYNTH_STATIC_LINUX_DEPS)
+    set(SMTG_ENABLE_WAYLAND_SUPPORT OFF CACHE BOOL "" FORCE)
 endif()
 FetchContent_MakeAvailable(vst3sdk)
 
@@ -103,6 +116,15 @@ endif()
 
 if(UNIX)
     target_link_libraries(MonkSynth PRIVATE m)
+endif()
+
+# Hide all symbols except VST3 entry points when statically linking on Linux.
+# This prevents bundled cairo/pango/glib symbols from conflicting with
+# other plugins or the host DAW.
+if(MONKSYNTH_STATIC_LINUX_DEPS)
+    target_link_options(MonkSynth PRIVATE
+        -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/resources/linux-exports.map
+    )
 endif()
 
 # --- macOS Audio Unit wrapper ---
