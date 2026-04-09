@@ -1,5 +1,5 @@
 --- a/vstgui4/vstgui/CMakeLists.txt	2026-04-08 21:08:17.160565508 -0500
-+++ b/vstgui4/vstgui/CMakeLists.txt	2026-04-08 21:08:53.631897593 -0500
++++ b/vstgui4/vstgui/CMakeLists.txt	2026-04-08 21:29:06.221975235 -0500
 @@ -55,7 +55,9 @@
  if(LINUX)
      set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -11,7 +11,7 @@
      find_package(X11 REQUIRED)
      find_package(Freetype REQUIRED)
      find_package(PkgConfig REQUIRED)
-@@ -70,24 +72,81 @@
+@@ -70,24 +72,84 @@
      pkg_check_modules(CAIRO REQUIRED cairo)
      pkg_check_modules(PANGO REQUIRED pangocairo pangoft2)
      pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
@@ -39,14 +39,17 @@
 +        # link them in a --start-group/--end-group block so the linker can
 +        # resolve the circular dependencies (harfbuzz <-> freetype, etc.).
 +        set(_SP "${MONKSYNTH_STATIC_PREFIX}/lib")
++        # Meson on Debian/Ubuntu installs to lib/x86_64-linux-gnu
++        set(_SP_MULTI "${MONKSYNTH_STATIC_PREFIX}/lib/x86_64-linux-gnu")
 +
 +        macro(_find_static VAR NAME)
-+            find_library(${VAR} NAMES "lib${NAME}.a" PATHS "${_SP}" NO_DEFAULT_PATH)
++            find_library(${VAR} NAMES "lib${NAME}.a"
++                PATHS "${_SP}" "${_SP_MULTI}" NO_DEFAULT_PATH)
 +            if(NOT ${VAR})
 +                find_library(${VAR} NAMES "lib${NAME}.a")
 +            endif()
 +            if(NOT ${VAR})
-+                message(FATAL_ERROR "Static library not found: lib${NAME}.a (looked in ${_SP})")
++                message(FATAL_ERROR "Static library not found: lib${NAME}.a (looked in ${_SP} and ${_SP_MULTI})")
 +            endif()
 +        endmacro()
 +
