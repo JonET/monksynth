@@ -2,6 +2,7 @@
 
 #include "theme_manager.h"
 
+#include "pluginterfaces/vst/ivstmidicontrollers.h"
 #include "public.sdk/source/vst/vsteditcontroller.h"
 #include "vstgui/lib/cbitmap.h"
 #include "vstgui/lib/platform/platformfactory.h"
@@ -61,11 +62,21 @@ class ThemedVST3Editor : public VSTGUI::VST3Editor {
     ThemeManager *themeManager_ = nullptr;
 };
 
-class Controller : public Steinberg::Vst::EditController, public VSTGUI::VST3EditorDelegate {
+class Controller : public Steinberg::Vst::EditController,
+                   public VSTGUI::VST3EditorDelegate,
+                   public Steinberg::Vst::IMidiMapping {
   public:
     using VST3Editor = VSTGUI::VST3Editor;
     using UTF8StringPtr = VSTGUI::UTF8StringPtr;
     using IUIDescription = VSTGUI::IUIDescription;
+
+    // COM interface plumbing for IMidiMapping
+    Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID iid, void **obj) override {
+        QUERY_INTERFACE(iid, obj, Steinberg::Vst::IMidiMapping::iid,
+                        Steinberg::Vst::IMidiMapping)
+        return EditController::queryInterface(iid, obj);
+    }
+    DELEGATE_REFCOUNT(EditController)
 
     static Steinberg::FUnknown *createInstance(void *) {
         return static_cast<Steinberg::Vst::IEditController *>(new Controller());
@@ -87,6 +98,12 @@ class Controller : public Steinberg::Vst::EditController, public VSTGUI::VST3Edi
     VSTGUI::COptionMenu *createContextMenu(const VSTGUI::CPoint &pos, VST3Editor *editor) override;
     bool isPrivateParameter(Steinberg::Vst::ParamID paramID) override;
 
+    // IMidiMapping
+    Steinberg::tresult PLUGIN_API
+    getMidiControllerAssignment(Steinberg::int32 busIndex, Steinberg::int16 channel,
+                                Steinberg::Vst::CtrlNumber midiControllerNumber,
+                                Steinberg::Vst::ParamID &id) override;
+
   private:
     void applyTheme(VST3Editor *editor);
     void showSetupOverlay(VST3Editor *editor);
@@ -96,7 +113,8 @@ class Controller : public Steinberg::Vst::EditController, public VSTGUI::VST3Edi
     InfoButton *infoButton_ = nullptr;
     VST3Editor *currentEditor_ = nullptr;
     ThemeManager themeManager_;
-    int noteRefCount_ = 0; // tracks active touches on vowel/pitch controls
+    int noteRefCount_ = 0;  // tracks active touches on vowel/pitch controls
+    bool inSetParam_ = false; // re-entrancy guard for setParamNormalized
 };
 
 } // namespace MonkSynth

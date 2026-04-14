@@ -253,6 +253,23 @@ bool Controller::isPrivateParameter(ParamID paramID) {
     return paramID == kXYNoteOn || paramID == kXYPitch || paramID == kNoteActive;
 }
 
+tresult PLUGIN_API Controller::getMidiControllerAssignment(int32 busIndex, int16 /*channel*/,
+                                                           CtrlNumber midiControllerNumber,
+                                                           ParamID &id) {
+    if (busIndex != 0)
+        return kResultFalse;
+
+    switch (midiControllerNumber) {
+        case ControllerNumbers::kPitchBend: id = kVowel; return kResultTrue;
+        case ControllerNumbers::kCtrlModWheel: id = kVibrato; return kResultTrue;
+        case ControllerNumbers::kCtrlPortaTime: id = kPortTime; return kResultTrue;
+        case ControllerNumbers::kCtrlVolume: id = kLevel; return kResultTrue;
+        case ControllerNumbers::kCtrlEffect1: id = kDelay; return kResultTrue;    // CC12
+        case ControllerNumbers::kCtrlEffect2: id = kHeadSize; return kResultTrue; // CC13
+        default: return kResultFalse;
+    }
+}
+
 tresult PLUGIN_API Controller::beginEdit(ParamID tag) {
     return EditController::beginEdit(tag);
 }
@@ -262,7 +279,11 @@ tresult PLUGIN_API Controller::endEdit(ParamID tag) {
 }
 
 tresult PLUGIN_API Controller::setParamNormalized(ParamID tag, ParamValue value) {
+    if (inSetParam_)
+        return EditController::setParamNormalized(tag, value);
+    inSetParam_ = true;
     tresult result = EditController::setParamNormalized(tag, value);
+    inSetParam_ = false;
     if (result == kResultOk && monkView_) {
         if (tag == kVowel)
             monkView_->setVowelValue(static_cast<float>(value));
