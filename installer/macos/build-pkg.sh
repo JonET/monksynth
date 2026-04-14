@@ -30,6 +30,14 @@ AU_ROOT="$WORK_DIR/au-root/Library/Audio/Plug-Ins/Components"
 mkdir -p "$AU_ROOT"
 cp -R "$AU_PATH" "$AU_ROOT/"
 
+# Presets go to /Library/Audio/Presets/MonkSynth/MonkSynth/
+PRESET_SRC="$SCRIPT_DIR/../../presets"
+if [ -d "$PRESET_SRC" ] && ls "$PRESET_SRC"/*.vstpreset >/dev/null 2>&1; then
+    PRESET_ROOT="$WORK_DIR/preset-root/Library/Audio/Presets/MonkSynth/MonkSynth"
+    mkdir -p "$PRESET_ROOT"
+    cp "$PRESET_SRC"/*.vstpreset "$PRESET_ROOT/"
+fi
+
 # --- Build component packages ---
 pkgbuild \
     --root "$WORK_DIR/vst3-root" \
@@ -44,6 +52,15 @@ pkgbuild \
     --version "$VERSION" \
     --install-location "/" \
     "$WORK_DIR/MonkSynth-AU.pkg"
+
+if [ -d "$WORK_DIR/preset-root" ]; then
+    pkgbuild \
+        --root "$WORK_DIR/preset-root" \
+        --identifier "com.monksynth.presets" \
+        --version "$VERSION" \
+        --install-location "/" \
+        "$WORK_DIR/MonkSynth-Presets.pkg"
+fi
 
 # --- Build product installer ---
 if [ -n "$SIGN_IDENTITY" ]; then

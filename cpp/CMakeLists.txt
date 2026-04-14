@@ -125,6 +125,21 @@ if(APPLE)
     )
 endif()
 
+# --- Install presets to the system VST3 preset directory ---
+file(GLOB MONKSYNTH_PRESETS "${CMAKE_CURRENT_SOURCE_DIR}/../presets/*.vstpreset")
+if(WIN32)
+    set(PRESET_DIR "$ENV{APPDATA}/VST3 Presets/MonkSynth/MonkSynth")
+elseif(APPLE)
+    set(PRESET_DIR "$ENV{HOME}/Library/Audio/Presets/MonkSynth/MonkSynth")
+else()
+    set(PRESET_DIR "$ENV{HOME}/.vst3/presets/MonkSynth/MonkSynth")
+endif()
+add_custom_command(TARGET MonkSynth POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PRESET_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MONKSYNTH_PRESETS} "${PRESET_DIR}"
+    COMMENT "[SMTG] Installing presets to ${PRESET_DIR}"
+)
+
 if(UNIX)
     target_link_libraries(MonkSynth PRIVATE m)
 endif()

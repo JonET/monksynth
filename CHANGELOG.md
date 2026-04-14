@@ -8,6 +8,9 @@ All notable changes to MonkSynth will be documented in this file.
 - MIDI CC and pitch bend support: pitch bend maps to vowel, CC1=vibrato, CC5=glide, CC7=volume, CC12=delay, CC13=voice character
 - XY pad performances can now be recorded as DAW automation (XY Note, XY Vowel, XY Pitch parameters)
 - Vowel smoothing on XY pad with 10-tick linear ramp matching the original Delay Lama
+- Factory presets from the original Delay Lama: Rabten, Dorje, Ngawang, Jamyang, Tinley
+- Plugin state save/load (presets and DAW session recall now work)
+- Presets included in Windows and macOS installers
 
 ### Changed
 - XY pad note sustain now matches original: sound plays until both mouse and MIDI keys are released

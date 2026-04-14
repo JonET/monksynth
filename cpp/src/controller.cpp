@@ -1,4 +1,5 @@
 #include "controller.h"
+#include "pluginterfaces/base/ibstream.h"
 #include "dll_extractor.h"
 #include "indicator.h"
 #include "info_button.h"
@@ -285,6 +286,16 @@ tresult PLUGIN_API Controller::getMidiControllerAssignment(int32 busIndex, int16
         case ControllerNumbers::kCtrlEffect2: id = kHeadSize; return kResultTrue; // CC13
         default: return kResultFalse;
     }
+}
+
+tresult PLUGIN_API Controller::setComponentState(IBStream *state) {
+    for (int i = 0; i < kNumParams; i++) {
+        float v;
+        if (state->read(&v, sizeof(v), nullptr) != kResultOk)
+            return kResultFalse;
+        setParamNormalized(static_cast<ParamID>(i), static_cast<ParamValue>(v));
+    }
+    return kResultOk;
 }
 
 tresult PLUGIN_API Controller::beginEdit(ParamID tag) {

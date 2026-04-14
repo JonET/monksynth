@@ -1,6 +1,7 @@
 #include "processor.h"
 #include "plugin_cids.h"
 
+#include "pluginterfaces/base/ibstream.h"
 #include "pluginterfaces/vst/ivstevents.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 
@@ -88,6 +89,25 @@ tresult PLUGIN_API Processor::setBusArrangements(
         return AudioEffect::setBusArrangements(inputs, numIns, outputs, numOuts);
     }
     return kResultFalse;
+}
+
+tresult PLUGIN_API Processor::getState(IBStream* state) {
+    for (int i = 0; i < kNumParams; i++) {
+        float v = paramValues_[i];
+        if (state->write(&v, sizeof(v), nullptr) != kResultOk)
+            return kResultFalse;
+    }
+    return kResultOk;
+}
+
+tresult PLUGIN_API Processor::setState(IBStream* state) {
+    for (int i = 0; i < kNumParams; i++) {
+        float v;
+        if (state->read(&v, sizeof(v), nullptr) != kResultOk)
+            return kResultFalse;
+        paramValues_[i] = v;
+    }
+    return kResultOk;
 }
 
 tresult PLUGIN_API Processor::process(ProcessData& data) {

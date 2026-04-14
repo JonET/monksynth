@@ -6,7 +6,7 @@
 AppId={{B8F3A1E2-7C4D-4E5F-9A6B-1D2E3F4A5B6C}
 AppName=MonkSynth
 AppVersion={#MyAppVersion}
-AppPublisher=Odd Laundry Digital
+AppPublisher=MonkSynth
 AppPublisherURL=https://github.com/JonET/monksynth
 DefaultDirName={commoncf64}\VST3
 DisableDirPage=yes
@@ -22,6 +22,7 @@ ArchitecturesAllowed=x64compatible
 
 [Files]
 Source: "staging\MonkSynth.vst3\*"; DestDir: "{commoncf64}\VST3\MonkSynth.vst3"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "staging\presets\*.vstpreset"; DestDir: "{userappdata}\VST3 Presets\MonkSynth\MonkSynth"; Flags: ignoreversion
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{commoncf64}\VST3\MonkSynth.vst3"

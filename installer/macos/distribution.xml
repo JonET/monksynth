@@ -11,6 +11,7 @@
     <choices-outline>
         <line choice="vst3"/>
         <line choice="au"/>
+        <line choice="presets"/>
     </choices-outline>
 
     <choice id="vst3"
@@ -25,6 +26,13 @@
         <pkg-ref id="com.monksynth.audiounit"/>
     </choice>
 
+    <choice id="presets"
+            title="Factory Presets"
+            description="Install factory presets to /Library/Audio/Presets/MonkSynth/">
+        <pkg-ref id="com.monksynth.presets"/>
+    </choice>
+
     <pkg-ref id="com.monksynth.vst3" version="0.0.0" onConclusion="none">MonkSynth-VST3.pkg</pkg-ref>
     <pkg-ref id="com.monksynth.audiounit" version="0.0.0" onConclusion="none">MonkSynth-AU.pkg</pkg-ref>
+    <pkg-ref id="com.monksynth.presets" version="0.0.0" onConclusion="none">MonkSynth-Presets.pkg</pkg-ref>
 </installer-gui-script>

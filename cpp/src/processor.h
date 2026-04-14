@@ -26,6 +26,8 @@ class Processor : public Steinberg::Vst::AudioEffect {
                                                      Steinberg::int32 numIns,
                                                      Steinberg::Vst::SpeakerArrangement *outputs,
                                                      Steinberg::int32 numOuts) override;
+    Steinberg::tresult PLUGIN_API setState(Steinberg::IBStream *state) override;
+    Steinberg::tresult PLUGIN_API getState(Steinberg::IBStream *state) override;
 
   private:
     MonkSynthEngine *synth_ = nullptr;

@@ -234,8 +234,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          mkdir -p installer/windows/staging
+          mkdir -p installer/windows/staging/presets
           cp -r "${{ steps.find_vst3.outputs.path }}" installer/windows/staging/MonkSynth.vst3
+          cp presets/*.vstpreset installer/windows/staging/presets/
           iscc //DMyAppVersion="${{ steps.version.outputs.number }}" installer/windows/MonkSynth.iss
 
       - name: Upload Windows installer
