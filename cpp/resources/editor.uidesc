@@ -170,60 +170,26 @@
 							"zoom-factor": "1.5"
 						}
 					},
-					"CSlider": {
+					"CView": {
 						"attributes": {
-							"bitmap-offset": "0, 0",
-							"class": "CSlider",
-							"control-tag": "Vowel",
-							"draw-back": "false",
-							"draw-back-color": "~ BlackCColor",
-							"draw-frame": "false",
-							"draw-frame-color": "~ GreyCColor",
-							"draw-value": "false",
-							"draw-value-color": "~ WhiteCColor",
-							"draw-value-from-center": "false",
-							"draw-value-inverted": "false",
-							"frame-width": "1",
-							"handle-bitmap": "fader_sm_right",
-							"handle-offset": "0, 0",
-							"mode": "use global",
+							"class": "CView",
+							"custom-view-name": "VowelIndicator",
 							"opacity": "1",
-							"orientation": "vertical",
 							"origin": "86, 358",
-							"reverse-orientation": "false",
 							"size": "10, 89",
 							"transparent": "true",
-							"wants-focus": "true",
-							"wheel-inc-value": "0.01",
-							"zoom-factor": "10"
+							"wants-focus": "false"
 						}
 					},
-					"CSlider": {
+					"CView": {
 						"attributes": {
-							"bitmap-offset": "0, 0",
-							"class": "CSlider",
-							"control-tag": "XYPitch",
-							"draw-back": "false",
-							"draw-back-color": "~ BlackCColor",
-							"draw-frame": "false",
-							"draw-frame-color": "~ GreyCColor",
-							"draw-value": "false",
-							"draw-value-color": "~ WhiteCColor",
-							"draw-value-from-center": "false",
-							"draw-value-inverted": "false",
-							"frame-width": "1",
-							"handle-bitmap": "fader_sm_down",
-							"handle-offset": "0, 0",
-							"mode": "use global",
+							"class": "CView",
+							"custom-view-name": "PitchIndicator",
 							"opacity": "1",
-							"orientation": "horizontal",
 							"origin": "91, 352",
-							"reverse-orientation": "false",
 							"size": "175, 10",
 							"transparent": "true",
-							"wants-focus": "true",
-							"wheel-inc-value": "0.01",
-							"zoom-factor": "10"
+							"wants-focus": "false"
 						}
 					},
 					"CSlider": {

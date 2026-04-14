@@ -138,16 +138,24 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
                         monk_synth_set_pitch_hz(synth_, startHz);
                     } else {
                         xyNoteActive_ = false;
-                        monk_synth_note_off(synth_, 60);
+                        if (midiNoteCount_ > 0) {
+                            // MIDI keys still held: slide back to held note
+                            monk_synth_restore_note_stack(synth_);
+                        } else {
+                            monk_synth_note_off(synth_, 60);
+                        }
                     }
                     break;
-                case kXYPitch:
+                case kXYPitchTarget:
                     xyPendingPitch_ = fval;
                     if (xyNoteActive_) {
                         // C3 to C4 (131-262 Hz), one octave
                         float hz = 130.81f * powf(2.0f, fval);
                         monk_synth_set_pitch_hz(synth_, hz);
                     }
+                    break;
+                case kXYVowel:
+                    monk_synth_set_vowel(synth_, fval);
                     break;
                 default: break;
             }
@@ -169,9 +177,20 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
                     midiNoteCount_++;
                     break;
                 case Event::kNoteOffEvent:
-                    monk_synth_note_off(synth_,
-                        static_cast<uint8_t>(event.noteOff.pitch));
                     if (midiNoteCount_ > 0) midiNoteCount_--;
+                    if (xyNoteActive_ && midiNoteCount_ == 0) {
+                        // XY pad is held — don't release, just clear the
+                        // note stack so XY pad pitch stays in control.
+                        monk_synth_note_off(synth_,
+                            static_cast<uint8_t>(event.noteOff.pitch));
+                        // note_off removed it from the stack; if stack is
+                        // now empty the DSP would release — re-assert pitch
+                        monk_synth_set_pitch_hz(synth_,
+                            130.81f * powf(2.0f, xyPendingPitch_));
+                    } else {
+                        monk_synth_note_off(synth_,
+                            static_cast<uint8_t>(event.noteOff.pitch));
+                    }
                     break;
                 default:
                     break;
@@ -199,6 +218,19 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
                 queue->addPoint(0, active ? 1.0 : 0.0, index);
             }
         }
+    }
+
+    // --- Send smoothed values back to UI so faders animate the glide ---
+    if (xyNoteActive_ && data.outputParameterChanges) {
+        int32 index = 0;
+        auto* vq = data.outputParameterChanges->addParameterData(kVowel, index);
+        if (vq)
+            vq->addPoint(0, static_cast<ParamValue>(monk_synth_get_vowel(synth_)), index);
+
+        index = 0;
+        auto* pq = data.outputParameterChanges->addParameterData(kXYPitch, index);
+        if (pq)
+            pq->addPoint(0, static_cast<ParamValue>(monk_synth_get_pitch_normalized(synth_)), index);
     }
 
     output.silenceFlags = 0;

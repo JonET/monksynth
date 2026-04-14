@@ -110,6 +110,8 @@ class Controller : public Steinberg::Vst::EditController,
     void showInfoOverlay(VST3Editor *editor);
 
     MonkView *monkView_ = nullptr;
+    VSTGUI::CControl *vowelIndicator_ = nullptr;
+    VSTGUI::CControl *pitchIndicator_ = nullptr;
     InfoButton *infoButton_ = nullptr;
     VST3Editor *currentEditor_ = nullptr;
     ThemeManager themeManager_;

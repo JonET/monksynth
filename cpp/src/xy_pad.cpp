@@ -51,14 +51,14 @@ void XYPadView::updateFromMouse(const CPoint &where) {
     xNorm_ = x;
     yNorm_ = 1.0f - y; // invert: screen top = high vowel, bottom = low
 
-    // Y axis -> vowel
+    // Y axis -> vowel target (processor smooths and writes back to kVowel)
     setValue(yNorm_);
     if (controller_) {
-        controller_->performEdit(kVowel, yNorm_);
-        controller_->setParamNormalized(kVowel, yNorm_);
-        // X axis -> pitch (edit is held open for entire drag)
-        controller_->performEdit(kXYPitch, xNorm_);
-        controller_->setParamNormalized(kXYPitch, xNorm_);
+        controller_->performEdit(kXYVowel, yNorm_);
+        controller_->setParamNormalized(kXYVowel, yNorm_);
+        // X axis -> pitch target (processor smooths and writes back to kXYPitch)
+        controller_->performEdit(kXYPitchTarget, xNorm_);
+        controller_->setParamNormalized(kXYPitchTarget, xNorm_);
     }
 
     invalid();
@@ -72,7 +72,8 @@ CMouseEventResult XYPadView::onMouseDown(CPoint &where, const CButtonState &butt
 
     beginEdit();
     if (controller_) {
-        controller_->beginEdit(kXYPitch);
+        controller_->beginEdit(kXYPitchTarget);
+        controller_->beginEdit(kXYVowel);
         // Note on — also set normalized so controller updates monk view
         controller_->beginEdit(kXYNoteOn);
         controller_->performEdit(kXYNoteOn, 1.0);
@@ -96,7 +97,8 @@ CMouseEventResult XYPadView::onMouseUp(CPoint &where, const CButtonState & /*but
         controller_->performEdit(kXYNoteOn, 0.0);
         controller_->setParamNormalized(kXYNoteOn, 0.0);
         controller_->endEdit(kXYNoteOn);
-        controller_->endEdit(kXYPitch);
+        controller_->endEdit(kXYVowel);
+        controller_->endEdit(kXYPitchTarget);
     }
     endEdit();
 
@@ -120,7 +122,8 @@ CMouseEventResult XYPadView::onMouseCancel() {
             controller_->performEdit(kXYNoteOn, 0.0);
             controller_->setParamNormalized(kXYNoteOn, 0.0);
             controller_->endEdit(kXYNoteOn);
-            controller_->endEdit(kXYPitch);
+            controller_->endEdit(kXYVowel);
+            controller_->endEdit(kXYPitchTarget);
         }
         endEdit();
         invalid();

@@ -186,28 +186,51 @@ static float grain_period(const MonkVoice *v, float midi_note) {
     return v->sample_rate / freq;
 }
 
-/* Constant-rate pitch slew in semitone space. Glides at ±12 semitones/sec
- * scaled by the glide parameter. Snaps to target within a threshold zone.
- * min_glide provides a floor for XY pad smoothing independent of the knob;
- * it also tightens the snap zone so frequent small mouse movements don't
- * bypass the smoothing entirely. */
+/* Two portamento modes matching the original Delay Lama:
+ *
+ * XY pad (min_glide > 0): 10-tick decimated linear ramp. Each tick
+ * fires every ~10ms. When a new target arrives, step = delta/10.
+ * Continuous mouse input resets the ramp, creating natural ease-out.
+ *
+ * MIDI notes (min_glide = 0): per-sample constant-rate slew at
+ * ±12 semitones/sec scaled by glide_param. Snaps within 0.2 semitones.
+ * At default glide (0.5), one octave takes ~510ms. */
+#define RAMP_TICKS 10
 static void apply_portamento(MonkVoice *v) {
-    float eff = v->glide_param > v->min_glide ? v->glide_param : v->min_glide;
-    if (eff < 0.001f) {
-        v->current_pitch = v->target_pitch;
-        return;
-    }
+    if (v->min_glide > 0.001f) {
+        /* XY pad: tick-based linear ramp */
+        v->ramp_counter--;
+        if (v->ramp_counter > 0)
+            return;
+        v->ramp_counter = v->ramp_period;
 
-    /* XY pad sends many small increments — use a tight snap zone so the
-     * smoothing actually engages. MIDI portamento keeps the wider zone. */
-    float snap = v->min_glide > 0.001f ? 0.01f : 0.2f;
-    float diff = v->current_pitch - v->target_pitch;
-    if (diff > snap) {
-        v->current_pitch += -12.0f / ((eff + 0.01f) * v->sample_rate);
-    } else if (diff < -snap) {
-        v->current_pitch += 12.0f / ((eff + 0.01f) * v->sample_rate);
+        if (v->pitch_ramp_ticks > 0) {
+            v->pitch_ramp_ticks--;
+            v->current_pitch += v->pitch_step;
+            if (v->pitch_ramp_ticks == 0)
+                v->current_pitch = v->target_pitch;
+        }
+        if (v->vowel_ramp_ticks > 0) {
+            v->vowel_ramp_ticks--;
+            v->current_vowel += v->vowel_step;
+            if (v->vowel_ramp_ticks == 0)
+                v->current_vowel = v->target_vowel;
+        }
+    } else if (v->glide_param > 0.001f) {
+        /* MIDI: per-sample constant-rate slew */
+        float diff = v->target_pitch - v->current_pitch;
+        float rate = 12.0f / ((v->glide_param + 0.01f) * v->sample_rate);
+        if (diff > 0.2f)
+            v->current_pitch += rate;
+        else if (diff < -0.2f)
+            v->current_pitch -= rate;
+        else
+            v->current_pitch = v->target_pitch;
+        v->current_vowel = v->target_vowel;
     } else {
+        /* No glide: snap */
         v->current_pitch = v->target_pitch;
+        v->current_vowel = v->target_vowel;
     }
 }
 
@@ -299,7 +322,10 @@ void monk_voice_init(MonkVoice *v, float sample_rate) {
     v->sr_per_vib_tbl = sample_rate / (float)MONK_SINE_TBL_SIZE;
     v->rng_state = 12345;
     v->grain_len = (uint32_t)(sample_rate * GRAIN_DURATION);
+    v->ramp_period = (int)(sample_rate * 0.01f); /* ~10ms between ticks */
+    v->ramp_counter = v->ramp_period;
     v->current_vowel = 0.5f;
+    v->target_vowel = 0.5f;
     v->current_voice = 0.5f;
     v->vibrato_rate = 0.5f;
     v->aspiration_amp = ASPIRATION_AMP_DEFAULT;
@@ -397,12 +423,38 @@ void monk_voice_set_pitch_direct(MonkVoice *v, float hz) {
     v->current_pitch = note;
 }
 
-/* Set target pitch without snapping — lets portamento (or min_glide) smooth
- * the transition. Used by the XY pad for natural vocal-style pitch slew. */
-void monk_voice_set_pitch_target(MonkVoice *v, float hz) { v->target_pitch = monk_hz_to_note(hz); }
+/* Set target pitch and reset the linear ramp. The glide knob scales
+ * the tick count; min_glide (XY pad) always uses 10 ticks. */
+void monk_voice_set_pitch_target(MonkVoice *v, float hz) {
+    float new_target = monk_hz_to_note(hz);
+    float eff = v->glide_param > v->min_glide ? v->glide_param : v->min_glide;
+    if (eff < 0.001f) {
+        v->current_pitch = new_target;
+        v->pitch_ramp_ticks = 0;
+    } else {
+        int n = RAMP_TICKS;
+        if (eff > 0.5f)
+            n = RAMP_TICKS + (int)((eff - 0.5f) * 180.0f);
+        v->pitch_step = (new_target - v->current_pitch) / (float)n;
+        v->pitch_ramp_ticks = n;
+    }
+    v->target_pitch = new_target;
+}
 
 void monk_voice_set_vowel(MonkVoice *v, float vowel) {
-    v->current_vowel = clampf(vowel, 0.0f, 1.0f);
+    float new_target = clampf(vowel, 0.0f, 1.0f);
+    float eff = v->glide_param > v->min_glide ? v->glide_param : v->min_glide;
+    if (eff < 0.001f) {
+        v->current_vowel = new_target;
+        v->vowel_ramp_ticks = 0;
+    } else {
+        int n = RAMP_TICKS;
+        if (eff > 0.5f)
+            n = RAMP_TICKS + (int)((eff - 0.5f) * 180.0f);
+        v->vowel_step = (new_target - v->current_vowel) / (float)n;
+        v->vowel_ramp_ticks = n;
+    }
+    v->target_vowel = new_target;
 }
 
 void monk_voice_set_voice(MonkVoice *v, float voice) {
@@ -447,6 +499,7 @@ void monk_voice_process(MonkVoice *v, float *output, uint32_t n) {
     for (uint32_t i = 0; i < n; i++) {
         if (v->active || v->env_stage == ENV_RELEASE) {
             apply_portamento(v);
+
             float vib = compute_vibrato(v);
             float pitch = v->current_pitch + vib;
             uint32_t period = (uint32_t)grain_period(v, pitch);

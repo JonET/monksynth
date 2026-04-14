@@ -26,6 +26,7 @@ void monk_synth_reset(MonkSynthEngine *s);
 void monk_synth_note_on(MonkSynthEngine *s, uint8_t note, float velocity);
 void monk_synth_note_off(MonkSynthEngine *s, uint8_t note);
 void monk_synth_set_pitch_hz(MonkSynthEngine *s, float hz);
+void monk_synth_restore_note_stack(MonkSynthEngine *s);
 
 /* Parameters (0.0–1.0) */
 void monk_synth_set_vowel(MonkSynthEngine *s, float value);
@@ -49,6 +50,10 @@ void monk_synth_set_level(MonkSynthEngine *s, float value);
 /* MIDI routing */
 void monk_synth_midi_cc(MonkSynthEngine *s, uint8_t cc, float value);
 void monk_synth_pitch_bend(MonkSynthEngine *s, float value);
+
+/* State readback (for UI animation) */
+float monk_synth_get_vowel(MonkSynthEngine *s);
+float monk_synth_get_pitch_normalized(MonkSynthEngine *s);
 
 /* Audio processing */
 void monk_synth_process(MonkSynthEngine *s, float *out_l, float *out_r, uint32_t num_samples);

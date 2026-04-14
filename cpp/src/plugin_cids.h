@@ -32,8 +32,10 @@ enum : Steinberg::Vst::ParamID {
     kNumParams = 16,
 
     // Private parameters for XY pad (not exposed to host automation)
-    kXYNoteOn = 100, // 1.0 = note on, 0.0 = note off
-    kXYPitch = 101,  // normalized pitch from XY pad X axis
+    kXYNoteOn = 100,      // 1.0 = note on, 0.0 = note off
+    kXYPitch = 101,       // smoothed pitch for slider display
+    kXYVowel = 102,       // target vowel from XY pad Y axis
+    kXYPitchTarget = 103, // target pitch from XY pad X axis
 
     // Output parameter: processor -> controller (for monk animation)
     kNoteActive = 200, // 1.0 when any note is sounding, 0.0 when silent

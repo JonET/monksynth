@@ -20,6 +20,14 @@ typedef struct {
     float glide_param;
     float min_glide; /* minimum glide for XY pad smoothing, independent of knob */
 
+    /* Linear ramp state (matches original Delay Lama's 10-tick ramp) */
+    float pitch_step;       /* semitones per tick */
+    int pitch_ramp_ticks;   /* ticks remaining */
+    float vowel_step;       /* vowel units per tick */
+    int vowel_ramp_ticks;   /* ticks remaining */
+    int ramp_counter;       /* samples until next tick */
+    int ramp_period;        /* samples between ticks (sampleRate * 0.01) */
+
     float vibrato_phase;
     float vibrato_depth;
     float vibrato_rate; /* 0-1 normalized, scales LFO speed */
@@ -37,6 +45,7 @@ typedef struct {
     float grain[MONK_MAX_GRAIN];
     uint32_t grain_len;
     float current_vowel;
+    float target_vowel;
     float current_voice;
     float aspiration_amp;
     bool grain_dirty;

@@ -185,7 +185,7 @@ void monk_synth_note_off(MonkSynthEngine *s, uint8_t note) {
 /* Direct pitch control for the XY pad. Only sets the target pitch —
  * min_glide ensures smooth slewing independent of the portamento knob,
  * providing smooth slewing for mouse/touch input. */
-#define XY_PAD_GLIDE 0.3f
+#define XY_PAD_GLIDE 0.035f
 void monk_synth_set_pitch_hz(MonkSynthEngine *s, float hz) {
     if (!s)
         return;
@@ -195,6 +195,22 @@ void monk_synth_set_pitch_hz(MonkSynthEngine *s, float hz) {
     int n = s->unison_count;
     for (int i = 0; i < n; i++) {
         s->voices[i].min_glide = XY_PAD_GLIDE;
+        monk_voice_set_pitch_target(&s->voices[i], detuned_hz(hz, s->unison_detune, i, n));
+    }
+}
+
+/* Restore pitch to the top of the MIDI note stack without retriggering
+ * the envelope. Used when the XY pad releases while MIDI keys are held,
+ * so the voice slides back to the held note naturally. */
+void monk_synth_restore_note_stack(MonkSynthEngine *s) {
+    if (!s || s->held_count == 0)
+        return;
+    uint8_t top = s->held[s->held_count - 1].note;
+    float hz = monk_midi_note_to_freq(top);
+    s->last_base_hz = hz;
+    int n = s->unison_count;
+    for (int i = 0; i < n; i++) {
+        s->voices[i].min_glide = 0.0f;
         monk_voice_set_pitch_target(&s->voices[i], detuned_hz(hz, s->unison_detune, i, n));
     }
 }
@@ -363,6 +379,24 @@ void monk_synth_midi_cc(MonkSynthEngine *s, uint8_t cc, float value) {
     default:
         break;
     }
+}
+
+float monk_synth_get_vowel(MonkSynthEngine *s) {
+    if (!s)
+        return 0.5f;
+    return s->voices[0].current_vowel;
+}
+
+/* Return current pitch as 0-1 normalized value matching the XY pad range
+ * (C3=0.0 to C4=1.0). current_pitch is in MIDI note space. */
+float monk_synth_get_pitch_normalized(MonkSynthEngine *s) {
+    if (!s)
+        return 0.5f;
+    float note = s->voices[0].current_pitch;
+    float norm = (note - 48.0f) / 12.0f; /* C3=48 → 0.0, C4=60 → 1.0 */
+    if (norm < 0.0f) norm = 0.0f;
+    if (norm > 1.0f) norm = 1.0f;
+    return norm;
 }
 
 void monk_synth_pitch_bend(MonkSynthEngine *s, float value) {
