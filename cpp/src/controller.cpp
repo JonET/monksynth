@@ -267,8 +267,7 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
 }
 
 bool Controller::isPrivateParameter(ParamID paramID) {
-    return paramID == kXYNoteOn || paramID == kXYPitch || paramID == kXYVowel ||
-           paramID == kXYPitchTarget || paramID == kNoteActive;
+    return paramID == kXYPitch || paramID == kNoteActive;
 }
 
 tresult PLUGIN_API Controller::getMidiControllerAssignment(int32 busIndex, int16 /*channel*/,
@@ -395,15 +394,17 @@ tresult PLUGIN_API Controller::initialize(FUnknown *context) {
         STR16("Voice Spread"), STR16(""), 0, 0.0,
         ParameterInfo::kCanAutomate, kUnisonVoiceSpread);
 
-    // Private parameters for XY pad (not automatable, not visible to host)
-    parameters.addParameter(STR16("XY Note"), STR16(""), 1, 0.0, ParameterInfo::kIsHidden,
-                            kXYNoteOn);
-    parameters.addParameter(STR16("XY Pitch"), STR16(""), 0, 0.5, ParameterInfo::kIsHidden,
+    // XY pad parameters (automatable for recording pad performances)
+    parameters.addParameter(STR16("XY Note"), STR16(""), 1, 0.0,
+                            ParameterInfo::kCanAutomate, kXYNoteOn);
+    parameters.addParameter(STR16("XY Vowel"), STR16(""), 0, 0.5,
+                            ParameterInfo::kCanAutomate, kXYVowel);
+    parameters.addParameter(STR16("XY Pitch"), STR16(""), 0, 0.5,
+                            ParameterInfo::kCanAutomate, kXYPitchTarget);
+
+    // Private parameters (not exposed to host automation)
+    parameters.addParameter(STR16("XY Pitch Display"), STR16(""), 0, 0.5, ParameterInfo::kIsHidden,
                             kXYPitch);
-    parameters.addParameter(STR16("XY Vowel"), STR16(""), 0, 0.5, ParameterInfo::kIsHidden,
-                            kXYVowel);
-    parameters.addParameter(STR16("XY Pitch Target"), STR16(""), 0, 0.5, ParameterInfo::kIsHidden,
-                            kXYPitchTarget);
 
     // Output parameter from processor (read-only, for monk animation)
     parameters.addParameter(STR16("Note Active"), STR16(""), 1, 0.0,

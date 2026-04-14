@@ -29,8 +29,9 @@ class Processor : public Steinberg::Vst::AudioEffect {
 
   private:
     MonkSynthEngine *synth_ = nullptr;
-    float paramValues_[16] = {0.5f, 0.5f, 0.8f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
-                              0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f, 0.0f};
+    float paramValues_[19] = {0.5f, 0.5f, 0.8f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
+                              0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f, 0.0f,
+                              0.0f, 0.5f, 0.5f};
     bool xyNoteActive_ = false;
     float xyPendingPitch_ = 0.5f;
     int midiNoteCount_ = 0;

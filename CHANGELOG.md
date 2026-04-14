@@ -4,6 +4,22 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- MIDI CC and pitch bend support: pitch bend maps to vowel, CC1=vibrato, CC5=glide, CC7=volume, CC12=delay, CC13=voice character
+- XY pad performances can now be recorded as DAW automation (XY Note, XY Vowel, XY Pitch parameters)
+- Vowel smoothing on XY pad with 10-tick linear ramp matching the original Delay Lama
+
+### Changed
+- XY pad note sustain now matches original: sound plays until both mouse and MIDI keys are released
+- XY pad pitch/vowel movements slide smoothly instead of snapping, matching the original's portamento behavior
+- XY pad faders are now read-only indicators showing smoothed state
+- MIDI portamento uses per-sample constant-rate slew at ±12 semitones/sec, matching the original's formula
+- Renamed "Voice" parameter to "HeadSize"; added original parameter units (Hours, Vowel, dB, cm)
+
+### Fixed
+- Fixed stack overflow crash when dragging the XY pad pitch slider while a note is held
+- Fixed setParamNormalized re-entrancy causing infinite recursion in some hosts
+
 ## [0.2.0-beta.4] - 2026-04-08
 
 ### Changed

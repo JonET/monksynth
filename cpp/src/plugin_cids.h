@@ -29,13 +29,13 @@ enum : Steinberg::Vst::ParamID {
     kDelayRate = 13,
     kLevel = 14,
     kUnisonVoiceSpread = 15,
-    kNumParams = 16,
+    kXYNoteOn = 16,       // 1.0 = note on, 0.0 = note off
+    kXYVowel = 17,        // target vowel from XY pad Y axis
+    kXYPitchTarget = 18,  // target pitch from XY pad X axis
+    kNumParams = 19,
 
-    // Private parameters for XY pad (not exposed to host automation)
-    kXYNoteOn = 100,      // 1.0 = note on, 0.0 = note off
-    kXYPitch = 101,       // smoothed pitch for slider display
-    kXYVowel = 102,       // target vowel from XY pad Y axis
-    kXYPitchTarget = 103, // target pitch from XY pad X axis
+    // Private parameters (not exposed to host automation)
+    kXYPitch = 101,       // smoothed pitch for indicator display
 
     // Output parameter: processor -> controller (for monk animation)
     kNoteActive = 200, // 1.0 when any note is sounding, 0.0 when silent
