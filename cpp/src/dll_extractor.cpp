@@ -5,8 +5,26 @@
 #include <cstring>
 #include <vector>
 
+#ifdef _WIN32
+#include <io.h>
+#endif
+
 namespace MonkSynth {
 namespace fs = std::filesystem;
+
+// On Windows, fopen(path.string().c_str(), ...) silently mangles paths that
+// contain characters outside the active ANSI code page (e.g. Japanese on a
+// non-Japanese locale).  Use the wide-character variant instead.
+static FILE *platform_fopen(const fs::path &p, const char *mode) {
+#ifdef _WIN32
+    wchar_t wMode[8] = {};
+    for (int i = 0; mode[i] && i < 7; i++)
+        wMode[i] = static_cast<wchar_t>(mode[i]);
+    return _wfopen(p.wstring().c_str(), wMode);
+#else
+    return fopen(p.string().c_str(), mode);
+#endif
+}
 
 // --- CRC32 (standard polynomial 0xEDB88320) ---
 
@@ -145,7 +163,7 @@ static void apply_transparency(std::vector<uint8_t> &rgba, int w, int h, TranspM
 
 ExtractionResult extractClassicTheme(const fs::path &dllPath, const fs::path &configDir) {
     // Read entire DLL
-    FILE *f = fopen(dllPath.string().c_str(), "rb");
+    FILE *f = platform_fopen(dllPath, "rb");
     if (!f)
         return {false, "Could not open the selected file.", {}};
 
@@ -205,7 +223,7 @@ ExtractionResult extractClassicTheme(const fs::path &dllPath, const fs::path &co
         apply_transparency(rgba, res.width, res.height, res.transparency);
 
         fs::path outPath = themeDir / res.filename;
-        if (!stbi_write_png(outPath.string().c_str(), res.width, res.height, 4, rgba.data(),
+        if (!stbi_write_png(outPath.u8string().c_str(), res.width, res.height, 4, rgba.data(),
                             res.width * 4))
             continue;
 
@@ -215,7 +233,7 @@ ExtractionResult extractClassicTheme(const fs::path &dllPath, const fs::path &co
     // Write theme manifest
     {
         fs::path manifest = themeDir / "theme.json";
-        FILE *mf = fopen(manifest.string().c_str(), "w");
+        FILE *mf = platform_fopen(manifest, "w");
         if (mf) {
             fprintf(mf, "{\n  \"name\": \"Classic Delay Lama\",\n  \"version\": \"1.0\"\n}\n");
             fclose(mf);

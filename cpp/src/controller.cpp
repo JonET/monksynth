@@ -18,11 +18,24 @@
 #include "vstgui/lib/platform/platformfactory.h"
 #include "vstgui/uidescription/uidescription.h"
 
+#include <stdexcept>
+
 using namespace Steinberg;
 using namespace Steinberg::Vst;
 using namespace VSTGUI;
 
 namespace MonkSynth {
+
+// VSTGUI file selectors return UTF-8 strings.  On Windows, the fs::path(const
+// char*) constructor interprets narrow strings using the active ANSI code page,
+// which mangles paths containing characters outside that code page (e.g.
+// Japanese characters on a non-Japanese locale).  std::filesystem::u8path()
+// handles this correctly on all platforms.
+static std::filesystem::path pathFromUTF8(const char *utf8) {
+    if (!utf8)
+        return {};
+    return std::filesystem::u8path(utf8);
+}
 
 IPlugView *PLUGIN_API Controller::createView(const char *name) {
     if (FIDStringsEqual(name, ViewType::kEditor)) {
@@ -101,26 +114,33 @@ void Controller::showSetupOverlay(VST3Editor *editor) {
         selector->addFileExtension(CFileExtension("DLL Files", "dll"));
 
         selector->run([this, setup, themedEditor](CNewFileSelector *sel) {
-            if (sel->getNumSelectedFiles() == 0)
-                return;
+            try {
+                if (sel->getNumSelectedFiles() == 0)
+                    return;
 
-            auto configDir = themeManager_.getClassicThemeDir().parent_path().parent_path();
-            auto result = extractClassicTheme(sel->getSelectedFile(0), configDir);
+                auto dllPath = pathFromUTF8(sel->getSelectedFile(0));
+                auto configDir = themeManager_.getClassicThemeDir().parent_path().parent_path();
+                auto result = extractClassicTheme(dllPath, configDir);
 
-            if (result.success) {
-                themeManager_.setThemePath(result.themeDir);
-                // Defer UI recreation until after the file selector callback
-                // returns — recreating views inside the callback causes
-                // broken event handling on Linux.
-                Call::later([this, themedEditor]() {
-                    auto *desc = themedEditor->getUIDescription();
-                    if (desc)
-                        desc->freePlatformResources();
-                    applyTheme(themedEditor);
-                    themedEditor->recreateUI();
-                });
-            } else {
-                setup->setStatusText(result.error);
+                if (result.success) {
+                    themeManager_.setThemePath(result.themeDir);
+                    // Defer UI recreation until after the file selector callback
+                    // returns — recreating views inside the callback causes
+                    // broken event handling on Linux.
+                    Call::later([this, themedEditor]() {
+                        auto *desc = themedEditor->getUIDescription();
+                        if (desc)
+                            desc->freePlatformResources();
+                        applyTheme(themedEditor);
+                        themedEditor->recreateUI();
+                    });
+                } else {
+                    setup->setStatusText(result.error);
+                }
+            } catch (const std::exception &e) {
+                setup->setStatusText(std::string("Error: ") + e.what());
+            } catch (...) {
+                setup->setStatusText("An unexpected error occurred.");
             }
         });
         selector->forget();
@@ -209,14 +229,17 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
                     UTF8String(themeManager_.themePath().generic_u8string()));
 
             selector->run([this, themedEditor](CNewFileSelector *sel) {
-                if (sel->getNumSelectedFiles() > 0) {
-                    std::filesystem::path file(sel->getSelectedFile(0));
-                    themeManager_.setThemePath(file.parent_path());
-                    auto *desc = themedEditor->getUIDescription();
-                    if (desc)
-                        desc->freePlatformResources();
-                    applyTheme(themedEditor);
-                    themedEditor->recreateUI();
+                try {
+                    if (sel->getNumSelectedFiles() > 0) {
+                        auto file = pathFromUTF8(sel->getSelectedFile(0));
+                        themeManager_.setThemePath(file.parent_path());
+                        auto *desc = themedEditor->getUIDescription();
+                        if (desc)
+                            desc->freePlatformResources();
+                        applyTheme(themedEditor);
+                        themedEditor->recreateUI();
+                    }
+                } catch (...) {
                 }
             });
             selector->forget();
@@ -241,19 +264,23 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
             selector->addFileExtension(CFileExtension("DLL Files", "dll"));
 
             selector->run([this, themedEditor](CNewFileSelector *sel) {
-                if (sel->getNumSelectedFiles() == 0)
-                    return;
+                try {
+                    if (sel->getNumSelectedFiles() == 0)
+                        return;
 
-                auto configDir = themeManager_.getClassicThemeDir().parent_path().parent_path();
-                auto result = extractClassicTheme(sel->getSelectedFile(0), configDir);
+                    auto dllPath = pathFromUTF8(sel->getSelectedFile(0));
+                    auto configDir = themeManager_.getClassicThemeDir().parent_path().parent_path();
+                    auto result = extractClassicTheme(dllPath, configDir);
 
-                if (result.success) {
-                    themeManager_.setThemePath(result.themeDir);
-                    auto *desc = themedEditor->getUIDescription();
-                    if (desc)
-                        desc->freePlatformResources();
-                    applyTheme(themedEditor);
-                    themedEditor->recreateUI();
+                    if (result.success) {
+                        themeManager_.setThemePath(result.themeDir);
+                        auto *desc = themedEditor->getUIDescription();
+                        if (desc)
+                            desc->freePlatformResources();
+                        applyTheme(themedEditor);
+                        themedEditor->recreateUI();
+                    }
+                } catch (...) {
                 }
             });
             selector->forget();
