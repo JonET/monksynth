@@ -4,6 +4,8 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0-beta.5] - 2026-04-13
+
 ### Added
 - MIDI CC and pitch bend support: pitch bend maps to vowel, CC1=vibrato, CC5=glide, CC7=volume, CC12=delay, CC13=voice character
 - XY pad performances can now be recorded as DAW automation (XY Note, XY Vowel, XY Pitch parameters)
