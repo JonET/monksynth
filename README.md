@@ -17,7 +17,8 @@ A monophonic vocal synthesizer that sounds like a monk chanting. Built using for
 - FOF synthesis engine producing realistic vocal formants
 - XY pad for real-time pitch and vowel control
 - Built-in stereo delay effect
-- MIDI support: note on/off, pitch bend (vowel), CC1 (vibrato), CC5 (glide), CC7 (volume), CC12 (delay), CC13 (voice)
+- MIDI support: note on/off, pitch wheel, CC1 (vibrato), CC5 (glide), CC7 (volume), CC12 (delay), CC13 (voice)
+- Automatable **Pitch Bend** parameter (±12 semitones). The hardware pitch wheel is routable to either Vowel (Classic / Delay Lama compat, the default) or Pitch via right-click → Pitch Bend
 - ADSR envelope with configurable attack, decay, sustain, release
 - Unison mode with up to 10 detuned voices and voice spread
 - Theme system with right-click context menu for custom skins
@@ -51,25 +52,24 @@ cmake -B build -G Xcode -DSMTG_AUDIOUNIT_SDK_PATH=/path/to/AudioUnitSDK
 cmake --build build --config Release --target MonkSynth-au
 ```
 
+### DSP unit tests
+
+The pure-C DSP layer (`dsp/`) has a small unit test suite exercising ADSR envelope boundaries, the note stack, unison detune math, pitch-bend propagation, and delay-line feedback stability. Tests are opt-in so they don't affect normal plugin builds:
+
+```bash
+cd cpp
+cmake -B build-tests -DMONKSYNTH_BUILD_TESTS=ON
+cmake --build build-tests --config Release
+ctest --test-dir build-tests --output-on-failure
+```
+
+CI runs the test suite on the Linux job before packaging each release, so any DSP regression blocks the build.
+
 ## Installation
 
 - **macOS:** Run the `.pkg` installer — installs both VST3 and AU plugins
 - **Windows:** Run the `.exe` installer — installs the VST3 plugin
 - **Linux:** Extract and copy `MonkSynth.vst3` to `~/.vst3/`
-
-## Repository Layout
-
-```
-dsp/
-  voice.c, voice.h     FOF synthesis engine (formants, overlap-add grains)
-  delay.c, delay.h     Stereo delay with feedback
-  synth.c, synth.h     Public API: note stack, MIDI routing, gain staging
-cpp/
-  src/                  VST3 plugin shell (processor, controller, GUI)
-  resources/            VSTGUI editor description and placeholder assets
-  CMakeLists.txt        Build system (fetches VST3 SDK via FetchContent)
-presets/                VST3 factory preset files
-```
 
 ## Themes
 

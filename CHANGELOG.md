@@ -4,6 +4,15 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- `Pitch Bend` parameter (±12 semitones, automatable) that actually bends the pitch of held notes, independent of the existing `Vowel` parameter
+- Right-click → **Pitch Bend** submenu with `Classic (Vowel)` and `Pitch` options; toggle controls where the hardware MIDI pitch wheel lands. Classic is the default and preserves Delay Lama compatibility. The host is notified via `restartComponent(kMidiCCAssignmentChanged)` so the switch takes effect without reloading the plugin.
+- Minimal DSP unit test suite (`cpp/tests/test_voice.c`, `test_synth.c`, `test_delay.c`) covering ADSR envelope boundaries, note stack LIFO, unison detune math, pitch-bend propagation, and delay-line feedback stability. Opt-in via `-DMONKSYNTH_BUILD_TESTS=ON`; runs on the Linux CI job before packaging.
+
+### Changed
+- DSP sources refactored into a `monk_dsp` static library so the plugin and the unit tests can link against the same objects without duplicating the source list.
+- Removed dead `monk_synth_pitch_bend` DSP function that was never called and just redirected to `set_vowel`.
+
 ## [0.2.0-beta.7] - 2026-04-14
 
 ### Added
