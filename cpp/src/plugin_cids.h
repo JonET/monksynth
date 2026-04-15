@@ -32,7 +32,9 @@ enum : Steinberg::Vst::ParamID {
     kXYNoteOn = 16,       // 1.0 = note on, 0.0 = note off
     kXYVowel = 17,        // target vowel from XY pad Y axis
     kXYPitchTarget = 18,  // target pitch from XY pad X axis
-    kNumParams = 19,
+    kPitchBend = 19,      // ±12 semitones, default 0
+    kPitchBendRouting = 20, // 0 = Classic (Vowel), 1 = Pitch — hidden
+    kNumParams = 21,
 
     // Private parameters (not exposed to host automation)
     kXYPitch = 101,       // smoothed pitch for indicator display

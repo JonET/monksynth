@@ -360,6 +360,46 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
     }
     menu->addEntry(langMenu, i18n::str(i18n::StringId::MenuLanguage));
 
+    // ---- Pitch Bend routing submenu ----
+    auto *pbMenu = new COptionMenu();
+    const bool pbRoutingIsPitch = getParamNormalized(kPitchBendRouting) >= 0.5;
+
+    struct PbOption {
+        i18n::StringId labelId;
+        bool isPitch;
+    };
+    const PbOption pbOpts[] = {
+        {i18n::StringId::MenuPitchBendClassic, false},
+        {i18n::StringId::MenuPitchBendPitch, true},
+    };
+
+    for (const auto &opt : pbOpts) {
+        CCommandMenuItem::Desc desc(i18n::str(opt.labelId));
+        if (pbRoutingIsPitch == opt.isPitch)
+            desc.flags |= CMenuItem::kChecked;
+        auto *pbItem = new CCommandMenuItem(std::move(desc));
+        bool target = opt.isPitch;
+        pbItem->setActions([this, target](CCommandMenuItem *) {
+            // Push the value through beginEdit/performEdit/endEdit so the
+            // host records the change and forwards it to the processor;
+            // setParamNormalized separately updates our own state and fires
+            // the restartComponent(kMidiCCAssignmentChanged) notification.
+            ParamValue v = target ? 1.0 : 0.0;
+            beginEdit(kPitchBendRouting);
+            performEdit(kPitchBendRouting, v);
+            endEdit(kPitchBendRouting);
+            setParamNormalized(kPitchBendRouting, v);
+        });
+        pbMenu->addEntry(pbItem);
+    }
+    // Surface the active mode in the parent menu label so users see the
+    // current state without opening the submenu. The kChecked flag on the
+    // submenu items alone is not reliably rendered by all hosts.
+    std::string pbLabel = std::string(i18n::str(i18n::StringId::MenuPitchBend)) + ": " +
+                          i18n::str(pbRoutingIsPitch ? i18n::StringId::MenuPitchBendPitch
+                                                     : i18n::StringId::MenuPitchBendClassic);
+    menu->addEntry(pbMenu, UTF8String(pbLabel));
+
     // No "Reset to Default" — there's no built-in theme. Users switch
     // between imported themes or re-import from the DLL.
 
@@ -377,7 +417,17 @@ tresult PLUGIN_API Controller::getMidiControllerAssignment(int32 busIndex, int16
         return kResultFalse;
 
     switch (midiControllerNumber) {
-        case ControllerNumbers::kPitchBend: id = kVowel; return kResultTrue;
+        case ControllerNumbers::kPitchBend:
+            // Dynamic routing: the kPitchBendRouting hidden parameter
+            // decides whether the hardware pitch wheel drives Vowel (Classic
+            // / Delay Lama compat) or PitchBend (standard synth). When the
+            // user flips the toggle, setParamNormalized below notifies the
+            // host via restartComponent(kMidiCCAssignmentChanged) so this
+            // function is re-queried.
+            id = (getParamNormalized(kPitchBendRouting) >= 0.5)
+                 ? kPitchBend
+                 : kVowel;
+            return kResultTrue;
         case ControllerNumbers::kCtrlModWheel: id = kVibrato; return kResultTrue;
         case ControllerNumbers::kCtrlPortaTime: id = kPortTime; return kResultTrue;
         case ControllerNumbers::kCtrlVolume: id = kLevel; return kResultTrue;
@@ -427,6 +477,12 @@ tresult PLUGIN_API Controller::setParamNormalized(ParamID tag, ParamValue value)
         } else if (tag == kXYNoteOn || tag == kNoteActive) {
             if (monkView_)
                 monkView_->setNoteActive(value > 0.5);
+        } else if (tag == kPitchBendRouting) {
+            // Tell the host to re-query IMidiMapping so the hardware pitch
+            // wheel assignment flips immediately instead of waiting for a
+            // plugin reload.
+            if (componentHandler)
+                componentHandler->restartComponent(kMidiCCAssignmentChanged);
         }
     }
     return result;
@@ -512,6 +568,16 @@ tresult PLUGIN_API Controller::initialize(FUnknown *context) {
                             ParameterInfo::kCanAutomate, kXYVowel);
     parameters.addParameter(STR16("XY Pitch"), STR16(""), 0, 0.5,
                             ParameterInfo::kCanAutomate, kXYPitchTarget);
+
+    parameters.addParameter(
+        new RangeParameter(STR16("Pitch Bend"), kPitchBend, STR16("st"),
+                           -12.0, 12.0, 0.0, 0, ParameterInfo::kCanAutomate));
+
+    // Hidden routing toggle: 0 = Classic (hardware pitch wheel → Vowel,
+    // Delay Lama compat), 1 = Pitch (wheel → PitchBend). Persists in VST3
+    // state so it travels with presets and DAW sessions.
+    parameters.addParameter(STR16("PB Routing"), STR16(""), 1, 0.0,
+                            ParameterInfo::kIsHidden, kPitchBendRouting);
 
     // Private parameters (not exposed to host automation)
     parameters.addParameter(STR16("XY Pitch Display"), STR16(""), 0, 0.5, ParameterInfo::kIsHidden,

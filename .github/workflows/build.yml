@@ -145,6 +145,14 @@ jobs:
         working-directory: cpp
         run: cmake --build build --config Release --target MonkSynth
 
+      - name: Build and run DSP unit tests
+        if: runner.os == 'Linux'
+        working-directory: cpp
+        run: |
+          cmake -B build-tests -DMONKSYNTH_BUILD_TESTS=ON
+          cmake --build build-tests --config Release
+          ctest --test-dir build-tests --output-on-failure
+
       - name: Build AudioUnit
         if: runner.os == 'macOS'
         working-directory: cpp

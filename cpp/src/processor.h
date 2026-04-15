@@ -31,9 +31,12 @@ class Processor : public Steinberg::Vst::AudioEffect {
 
   private:
     MonkSynthEngine *synth_ = nullptr;
-    float paramValues_[19] = {0.5f, 0.5f, 0.8f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
+    // Order must match the ParamID enum in plugin_cids.h.
+    // PitchBend (idx 19): 0.5 = 0 semitones (RangeParameter midpoint).
+    // PitchBendRouting (idx 20): 0.0 = Classic (Vowel), preserves Delay Lama.
+    float paramValues_[21] = {0.5f, 0.5f, 0.8f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
                               0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f, 0.0f,
-                              0.0f, 0.5f, 0.5f};
+                              0.0f, 0.5f, 0.5f, 0.5f, 0.0f};
     bool xyNoteActive_ = false;
     float xyPendingPitch_ = 0.5f;
     int midiNoteCount_ = 0;

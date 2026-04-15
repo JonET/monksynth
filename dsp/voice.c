@@ -471,6 +471,10 @@ void monk_voice_set_vibrato_rate(MonkVoice *v, float rate) {
     v->vibrato_rate = clampf(rate, 0.0f, 1.0f);
 }
 
+void monk_voice_set_pitch_bend(MonkVoice *v, float semitones) {
+    v->pitch_bend_offset = clampf(semitones, -12.0f, 12.0f);
+}
+
 void monk_voice_set_aspiration(MonkVoice *v, float amp) {
     v->aspiration_amp = clampf(amp, 0.0f, 1.0f);
 }
@@ -501,7 +505,7 @@ void monk_voice_process(MonkVoice *v, float *output, uint32_t n) {
             apply_portamento(v);
 
             float vib = compute_vibrato(v);
-            float pitch = v->current_pitch + vib;
+            float pitch = v->current_pitch + v->pitch_bend_offset + vib;
             uint32_t period = (uint32_t)grain_period(v, pitch);
 
             if (v->overlap_offset >= period || v->grain_dirty) {

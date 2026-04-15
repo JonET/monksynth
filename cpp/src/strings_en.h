@@ -58,6 +58,12 @@ constexpr const char *kStringsEn[] = {
     "Language",
     // MenuLanguageAuto
     "Auto",
+    // MenuPitchBend
+    "Pitch Bend",
+    // MenuPitchBendClassic
+    "Classic (Vowel)",
+    // MenuPitchBendPitch
+    "Pitch",
     // FileSelectThemeJson
     "Select theme.json in Theme Folder",
     // FileSelectDll

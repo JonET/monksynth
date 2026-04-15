@@ -65,6 +65,12 @@ constexpr const char *kStringsKo[] = {
     "언어",
     // MenuLanguageAuto
     "자동",
+    // MenuPitchBend
+    "피치 벤드",
+    // MenuPitchBendClassic
+    "클래식 (모음)",
+    // MenuPitchBendPitch
+    "피치",
     // FileSelectThemeJson
     "테마 폴더에서 theme.json 선택",
     // FileSelectDll

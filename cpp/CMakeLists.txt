@@ -69,8 +69,20 @@ configure_file(
     "${CMAKE_CURRENT_BINARY_DIR}/generated/version.h"
 )
 
-# --- DSP engine (plain C) ---
+# --- DSP engine (plain C, standalone static library) ---
+# Built as its own target so the VST3 plugin and the unit-test executables can
+# both link against the same objects without duplicating the source list.
 set(DSP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dsp")
+
+add_library(monk_dsp STATIC
+    ${DSP_DIR}/voice.c
+    ${DSP_DIR}/delay.c
+    ${DSP_DIR}/synth.c
+)
+target_include_directories(monk_dsp PUBLIC "${DSP_DIR}")
+if(UNIX)
+    target_link_libraries(monk_dsp PRIVATE m)
+endif()
 
 # --- VST3 Plugin ---
 smtg_add_vst3plugin(MonkSynth
@@ -102,13 +114,10 @@ smtg_add_vst3plugin(MonkSynth
     src/strings_ja.h
     src/strings_ko.h
     src/stb_impl.c
-    ${DSP_DIR}/voice.c
-    ${DSP_DIR}/delay.c
-    ${DSP_DIR}/synth.c
 )
 
-target_include_directories(MonkSynth PRIVATE "${DSP_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/generated")
-target_link_libraries(MonkSynth PRIVATE sdk vstgui_support)
+target_include_directories(MonkSynth PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+target_link_libraries(MonkSynth PRIVATE sdk vstgui_support monk_dsp)
 
 smtg_target_add_plugin_resources(MonkSynth
     RESOURCES
@@ -147,6 +156,17 @@ add_custom_command(TARGET MonkSynth POST_BUILD
 
 if(UNIX)
     target_link_libraries(MonkSynth PRIVATE m)
+endif()
+
+# --- DSP unit tests (opt-in) ---
+option(MONKSYNTH_BUILD_TESTS "Build DSP unit tests" OFF)
+if(MONKSYNTH_BUILD_TESTS)
+    enable_testing()
+    foreach(t test_voice test_synth test_delay)
+        add_executable(${t} tests/${t}.c)
+        target_link_libraries(${t} PRIVATE monk_dsp)
+        add_test(NAME ${t} COMMAND ${t})
+    endforeach()
 endif()
 
 # Hide all symbols except VST3 entry points when statically linking on Linux.
