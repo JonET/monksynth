@@ -34,6 +34,7 @@ void monk_synth_set_voice(MonkSynthEngine *s, float value);
 void monk_synth_set_glide(MonkSynthEngine *s, float value);
 void monk_synth_set_vibrato(MonkSynthEngine *s, float value);
 void monk_synth_set_vibrato_rate(MonkSynthEngine *s, float value);
+void monk_synth_set_pitch_bend(MonkSynthEngine *s, float semitones);
 void monk_synth_set_aspiration(MonkSynthEngine *s, float value);
 void monk_synth_set_attack(MonkSynthEngine *s, float seconds);
 void monk_synth_set_decay(MonkSynthEngine *s, float seconds);
@@ -49,7 +50,6 @@ void monk_synth_set_level(MonkSynthEngine *s, float value);
 
 /* MIDI routing */
 void monk_synth_midi_cc(MonkSynthEngine *s, uint8_t cc, float value);
-void monk_synth_pitch_bend(MonkSynthEngine *s, float value);
 
 /* State readback (for UI animation) */
 float monk_synth_get_vowel(MonkSynthEngine *s);

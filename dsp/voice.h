@@ -16,6 +16,7 @@ typedef struct {
     bool active;
     float current_pitch; /* MIDI note space */
     float target_pitch;
+    float pitch_bend_offset; /* semitones, clamped to [-12, 12] */
 
     float glide_param;
     float min_glide; /* minimum glide for XY pad smoothing, independent of knob */
@@ -78,6 +79,7 @@ void monk_voice_set_voice(MonkVoice *v, float voice);
 void monk_voice_set_glide(MonkVoice *v, float glide);
 void monk_voice_set_vibrato(MonkVoice *v, float depth);
 void monk_voice_set_vibrato_rate(MonkVoice *v, float rate);
+void monk_voice_set_pitch_bend(MonkVoice *v, float semitones);
 void monk_voice_set_aspiration(MonkVoice *v, float amp);
 void monk_voice_set_attack(MonkVoice *v, float seconds);
 void monk_voice_set_decay(MonkVoice *v, float seconds);

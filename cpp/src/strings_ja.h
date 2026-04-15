@@ -65,6 +65,12 @@ constexpr const char *kStringsJa[] = {
     "言語",
     // MenuLanguageAuto
     "自動",
+    // MenuPitchBend
+    "ピッチベンド",
+    // MenuPitchBendClassic
+    "クラシック（母音）",
+    // MenuPitchBendPitch
+    "ピッチ",
     // FileSelectThemeJson
     "テーマフォルダ内の theme.json を選択",
     // FileSelectDll

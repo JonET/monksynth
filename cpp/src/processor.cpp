@@ -60,6 +60,7 @@ tresult PLUGIN_API Processor::setActive(TBool state) {
         monk_synth_set_sustain(synth_, paramValues_[kSustain]);
         monk_synth_set_release(synth_, paramValues_[kRelease] * 3.0f);
         monk_synth_set_level(synth_, paramValues_[kLevel]);
+        monk_synth_set_pitch_bend(synth_, (paramValues_[kPitchBend] - 0.5f) * 24.0f);
     } else {
         if (synth_) {
             monk_synth_reset(synth_);
@@ -176,6 +177,14 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
                     break;
                 case kXYVowel:
                     monk_synth_set_vowel(synth_, fval);
+                    break;
+                case kPitchBend:
+                    // RangeParameter [-12,12]: normalized 0.5 = 0 semitones.
+                    monk_synth_set_pitch_bend(synth_, (fval - 0.5f) * 24.0f);
+                    break;
+                case kPitchBendRouting:
+                    // Stored in paramValues_ only; the controller handles
+                    // IMidiMapping re-query. No DSP side-effect from here.
                     break;
                 default: break;
             }

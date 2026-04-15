@@ -7,45 +7,15 @@
  * creating a thicker choir-like sound. Count=1 is a single voice.
  */
 
-#include "synth.h"
-#include "delay.h"
-#include "voice.h"
+#include "synth_internal.h"
 
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_BUF 8192
-#define MAX_NOTES 16
-#define MAX_UNISON 10
-
-typedef struct {
-    uint8_t note;
-    float velocity;
-} HeldNote;
-
-struct MonkSynthEngine {
-    MonkVoice voices[MAX_UNISON];
-    int unison_count;
-    float unison_detune;       /* max detune spread in cents */
-    float unison_voice_spread; /* voice character spread across unison (0-1) */
-    float base_voice;          /* center voice value before spread */
-    float last_base_hz;        /* last note frequency for live detune updates */
-
-    MonkDelay delay;
-
-    HeldNote held[MAX_NOTES];
-    uint32_t held_count;
-    float cc_volume;
-    float level;              /* output level 0-1 (GUI knob) */
-    float current_voice_gain; /* smoothed unison gain */
-    float target_voice_gain;
-
-    float scratch_mono[MAX_BUF];
-    float scratch_voice[MAX_BUF]; /* per-voice temp buffer */
-    float scratch_l[MAX_BUF];
-    float scratch_r[MAX_BUF];
-};
+#define MAX_BUF MONK_MAX_BUF
+#define MAX_NOTES MONK_MAX_NOTES
+#define MAX_UNISON MONK_MAX_UNISON
 
 /* Remove a note from the held-note stack, compacting in place. */
 static void remove_note(MonkSynthEngine *s, uint8_t note) {
@@ -247,6 +217,12 @@ void monk_synth_set_vibrato_rate(MonkSynthEngine *s, float v) {
     for (int i = 0; i < MAX_UNISON; i++)
         monk_voice_set_vibrato_rate(&s->voices[i], v);
 }
+void monk_synth_set_pitch_bend(MonkSynthEngine *s, float semitones) {
+    if (!s)
+        return;
+    for (int i = 0; i < MAX_UNISON; i++)
+        monk_voice_set_pitch_bend(&s->voices[i], semitones);
+}
 void monk_synth_set_aspiration(MonkSynthEngine *s, float v) {
     if (!s)
         return;
@@ -397,12 +373,6 @@ float monk_synth_get_pitch_normalized(MonkSynthEngine *s) {
     if (norm < 0.0f) norm = 0.0f;
     if (norm > 1.0f) norm = 1.0f;
     return norm;
-}
-
-void monk_synth_pitch_bend(MonkSynthEngine *s, float value) {
-    if (!s)
-        return;
-    monk_synth_set_vowel(s, value);
 }
 
 /* ---- Audio processing ---- */
