@@ -14,6 +14,7 @@ Thumbs.db
 
 # C++ build output
 cpp/build/
+cpp/build-*/
 cpp/out/
 cpp/lib/
 

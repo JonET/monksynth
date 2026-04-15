@@ -30,6 +30,7 @@ class SetupView : public VSTGUI::CViewContainer {
   private:
     VSTGUI::CRect importBtnRect_;
     VSTGUI::CRect urlLinkRect_;
+    VSTGUI::CRect openFolderRect_;
     std::string statusText_;
     ImportCallback importCb_;
 };

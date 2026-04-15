@@ -1,10 +1,12 @@
 #include "controller.h"
 #include "pluginterfaces/base/ibstream.h"
 #include "dll_extractor.h"
+#include "i18n.h"
 #include "indicator.h"
 #include "info_button.h"
 #include "info_view.h"
 #include "monk_view.h"
+#include "open_url.h"
 #include "plugin_cids.h"
 #include "setup_view.h"
 #include "xy_pad.h"
@@ -35,6 +37,19 @@ static std::filesystem::path pathFromUTF8(const char *utf8) {
     if (!utf8)
         return {};
     return std::filesystem::u8path(utf8);
+}
+
+// Resolve a persisted language preference ("auto" | "en" | "ja" | "ko" | "")
+// into an active i18n language and install it globally.
+static void applyLanguagePreference(const std::string &pref) {
+    if (pref == "en")
+        i18n::setLanguage(i18n::Language::English);
+    else if (pref == "ja")
+        i18n::setLanguage(i18n::Language::Japanese);
+    else if (pref == "ko")
+        i18n::setLanguage(i18n::Language::Korean);
+    else
+        i18n::setLanguage(i18n::detectSystemLanguage());
 }
 
 IPlugView *PLUGIN_API Controller::createView(const char *name) {
@@ -87,6 +102,10 @@ CView *Controller::createCustomView(UTF8StringPtr name, const UIAttributes & /*a
 
 void Controller::didOpen(VST3Editor *editor) {
     currentEditor_ = editor;
+    // Re-apply language preference in case the user changed their OS locale
+    // since initialize() was called (e.g. relaunched the host in a different
+    // language).
+    applyLanguagePreference(themeManager_.languagePref());
     // Theme bitmaps are applied in ThemedVST3Editor::open() before views are
     // created, so CAnimKnob sees the real bitmap dimensions at init time.
     // We only need to show the setup overlay when no theme is available.
@@ -110,8 +129,9 @@ void Controller::showSetupOverlay(VST3Editor *editor) {
         if (!selector)
             return;
 
-        selector->setTitle("Select Delay Lama DLL");
-        selector->addFileExtension(CFileExtension("DLL Files", "dll"));
+        selector->setTitle(i18n::str(i18n::StringId::FileSelectDll));
+        selector->addFileExtension(
+            CFileExtension(i18n::str(i18n::StringId::FileExtDll), "dll"));
 
         selector->run([this, setup, themedEditor](CNewFileSelector *sel) {
             try {
@@ -197,7 +217,8 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
 
     // Show current theme name as a disabled header.
     std::string themeName = themeManager_.getThemeName();
-    CCommandMenuItem::Desc headerDesc("Theme: " + themeName);
+    CCommandMenuItem::Desc headerDesc(
+        std::string(i18n::str(i18n::StringId::MenuThemePrefix)) + themeName);
     headerDesc.flags = CMenuItem::kDisabled;
     auto *header = new CCommandMenuItem(std::move(headerDesc));
     menu->addEntry(header);
@@ -205,7 +226,8 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
     menu->addSeparator();
 
     // "Load Theme..." item.
-    auto *loadItem = new CCommandMenuItem(CCommandMenuItem::Desc("Load Theme..."));
+    auto *loadItem =
+        new CCommandMenuItem(CCommandMenuItem::Desc(i18n::str(i18n::StringId::MenuLoadTheme)));
     loadItem->setActions([this, themedEditor](CCommandMenuItem *) {
         // Defer file dialog opening until after the context menu's tracking
         // loop has ended.  On macOS, opening NSOpenPanel while the NSMenu is
@@ -222,8 +244,9 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
             if (!selector)
                 return;
 
-            selector->setTitle("Select theme.json in Theme Folder");
-            selector->addFileExtension(CFileExtension("JSON Files", "json"));
+            selector->setTitle(i18n::str(i18n::StringId::FileSelectThemeJson));
+            selector->addFileExtension(
+                CFileExtension(i18n::str(i18n::StringId::FileExtJson), "json"));
             if (themeManager_.hasTheme())
                 selector->setInitialDirectory(
                     UTF8String(themeManager_.themePath().generic_u8string()));
@@ -247,9 +270,19 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
     });
     menu->addEntry(loadItem);
 
+    // "Open Themes Folder" item. Reveals the user config themes directory
+    // so people can drop a new theme folder in or grab an existing one to
+    // share.
+    auto *openFolderItem =
+        new CCommandMenuItem(CCommandMenuItem::Desc(i18n::str(i18n::StringId::MenuOpenFolder)));
+    openFolderItem->setActions([](CCommandMenuItem *) {
+        openFolder(ThemeManager::getThemesDir());
+    });
+    menu->addEntry(openFolderItem);
+
     // "Import Classic Skin from DLL..." item.
     auto *importItem =
-        new CCommandMenuItem(CCommandMenuItem::Desc("Import Classic Skin from DLL..."));
+        new CCommandMenuItem(CCommandMenuItem::Desc(i18n::str(i18n::StringId::MenuImportClassic)));
     importItem->setActions([this, themedEditor](CCommandMenuItem *) {
         Call::later([this, themedEditor]() {
             auto *frame = themedEditor->getFrame();
@@ -260,8 +293,9 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
             if (!selector)
                 return;
 
-            selector->setTitle("Select Delay Lama DLL");
-            selector->addFileExtension(CFileExtension("DLL Files", "dll"));
+            selector->setTitle(i18n::str(i18n::StringId::FileSelectDll));
+            selector->addFileExtension(
+                CFileExtension(i18n::str(i18n::StringId::FileExtDll), "dll"));
 
             selector->run([this, themedEditor](CNewFileSelector *sel) {
                 try {
@@ -287,6 +321,44 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
         });
     });
     menu->addEntry(importItem);
+
+    // ---- Language submenu ----
+    menu->addSeparator();
+
+    auto *langMenu = new COptionMenu();
+    const std::string currentPref =
+        themeManager_.languagePref().empty() ? "auto" : themeManager_.languagePref();
+
+    struct LangOption {
+        const char *label;
+        const char *pref;
+    };
+    // "English", "日本語", "한국어" are displayed in their own scripts so a
+    // user who accidentally flipped to a script they can't read still has an
+    // obvious escape hatch. They intentionally are NOT routed through i18n.
+    const LangOption opts[] = {
+        {i18n::str(i18n::StringId::MenuLanguageAuto), "auto"},
+        {"English", "en"},
+        {"\xE6\x97\xA5\xE6\x9C\xAC\xE8\xAA\x9E", "ja"},
+        {"\xED\x95\x9C\xEA\xB5\xAD\xEC\x96\xB4", "ko"},
+    };
+
+    for (const auto &opt : opts) {
+        CCommandMenuItem::Desc desc(opt.label);
+        if (currentPref == opt.pref)
+            desc.flags |= CMenuItem::kChecked;
+        auto *langItem = new CCommandMenuItem(std::move(desc));
+        std::string pref = opt.pref;
+        langItem->setActions([this, themedEditor, pref](CCommandMenuItem *) {
+            themeManager_.setLanguagePref(pref);
+            applyLanguagePreference(pref);
+            auto *frame = themedEditor->getFrame();
+            if (frame)
+                frame->invalid();
+        });
+        langMenu->addEntry(langItem);
+    }
+    menu->addEntry(langMenu, i18n::str(i18n::StringId::MenuLanguage));
 
     // No "Reset to Default" — there's no built-in theme. Users switch
     // between imported themes or re-import from the DLL.
@@ -366,6 +438,7 @@ tresult PLUGIN_API Controller::initialize(FUnknown *context) {
         return result;
 
     themeManager_.loadConfig();
+    applyLanguagePreference(themeManager_.languagePref());
 
     parameters.addParameter(
         new RangeParameter(STR16("PortTime"), kPortTime, STR16("Hours"),

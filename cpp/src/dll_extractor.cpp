@@ -1,4 +1,5 @@
 #include "dll_extractor.h"
+#include "i18n.h"
 #include "stb_image_write.h"
 
 #include <cstdio>
@@ -165,7 +166,7 @@ ExtractionResult extractClassicTheme(const fs::path &dllPath, const fs::path &co
     // Read entire DLL
     FILE *f = platform_fopen(dllPath, "rb");
     if (!f)
-        return {false, "Could not open the selected file.", {}};
+        return {false, i18n::str(i18n::StringId::ErrCannotOpen), {}};
 
     fseek(f, 0, SEEK_END);
     size_t fileSize = ftell(f);
@@ -173,33 +174,27 @@ ExtractionResult extractClassicTheme(const fs::path &dllPath, const fs::path &co
 
     if (fileSize != kExpectedDllSize) {
         fclose(f);
-        return {false,
-                "This doesn't appear to be the original Delay Lama DLL "
-                "(unexpected file size).",
-                {}};
+        return {false, i18n::str(i18n::StringId::ErrUnexpectedSize), {}};
     }
 
     std::vector<uint8_t> dll(fileSize);
     if (fread(dll.data(), 1, fileSize, f) != fileSize) {
         fclose(f);
-        return {false, "Failed to read the file.", {}};
+        return {false, i18n::str(i18n::StringId::ErrReadFailed), {}};
     }
     fclose(f);
 
     // Validate DLL checksum
     uint32_t crc = compute_crc32(dll.data(), dll.size());
     if (crc != kExpectedDllCrc)
-        return {false,
-                "This doesn't appear to be the original Delay Lama DLL "
-                "(checksum mismatch).",
-                {}};
+        return {false, i18n::str(i18n::StringId::ErrChecksumMismatch), {}};
 
     // Create output directory
     fs::path themeDir = configDir / "themes" / "classic";
     std::error_code ec;
     fs::create_directories(themeDir, ec);
     if (ec)
-        return {false, "Could not create theme directory: " + ec.message(), {}};
+        return {false, std::string(i18n::str(i18n::StringId::ErrCreateDir)) + ec.message(), {}};
 
     int extracted = 0;
 
@@ -242,14 +237,15 @@ ExtractionResult extractClassicTheme(const fs::path &dllPath, const fs::path &co
 
     if (extracted == kNumResources)
         return {true, {}, themeDir};
-    if (extracted > 0)
-        return {true,
-                "Imported " + std::to_string(extracted) + "/" + std::to_string(kNumResources) +
-                    " assets.",
-                themeDir};
+    if (extracted > 0) {
+        char buf[128];
+        std::snprintf(buf, sizeof(buf), i18n::str(i18n::StringId::MsgImportedCount), extracted,
+                      kNumResources);
+        return {true, buf, themeDir};
+    }
 
     fs::remove_all(themeDir, ec);
-    return {false, "Failed to extract resources from the DLL.", {}};
+    return {false, i18n::str(i18n::StringId::ErrExtractFailed), {}};
 }
 
 } // namespace MonkSynth

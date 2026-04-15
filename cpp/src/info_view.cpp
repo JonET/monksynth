@@ -1,5 +1,7 @@
 #include "info_view.h"
+#include "i18n.h"
 #include "open_url.h"
+#include "theme_manager.h"
 #include "version.h"
 
 #include "vstgui/lib/cdrawcontext.h"
@@ -8,14 +10,6 @@
 #include "vstgui/lib/cgraphicspath.h"
 #include "vstgui/lib/cstring.h"
 #include "vstgui/lib/cvstguitimer.h"
-
-#if __linux__
-#define MONKSYNTH_FONT "DejaVu Sans"
-#elif __APPLE__
-#define MONKSYNTH_FONT "Helvetica"
-#else
-#define MONKSYNTH_FONT "Arial"
-#endif
 
 using namespace VSTGUI;
 
@@ -43,6 +37,7 @@ static void drawRoundRect(CDrawContext *ctx, const CRect &r, CCoord radius, bool
 
 void InfoView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     CRect bounds = getViewSize();
+    const char *font = i18n::uiFont();
 
     ctx->setDrawMode(kAntiAliasing | kNonIntegralMode);
 
@@ -55,11 +50,12 @@ void InfoView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     ctx->setFillColor(CColor(200, 150, 50, 255));
     ctx->drawRect(accent, kDrawFilled);
 
-    auto *titleFont = new CFontDesc(MONKSYNTH_FONT, 24, kBoldFace);
-    auto *bodyFont = new CFontDesc(MONKSYNTH_FONT, 13);
-    auto *smallFont = new CFontDesc(MONKSYNTH_FONT, 11);
-    auto *btnFont = new CFontDesc(MONKSYNTH_FONT, 14, kBoldFace);
-    auto *linkFont = new CFontDesc(MONKSYNTH_FONT, 13, kUnderlineFace);
+    auto *titleFont = new CFontDesc(font, 24, kBoldFace);
+    auto *bodyFont = new CFontDesc(font, 13);
+    auto *smallFont = new CFontDesc(font, 11);
+    auto *btnFont = new CFontDesc(font, 14, kBoldFace);
+    auto *linkFont = new CFontDesc(font, 13, kUnderlineFace);
+    auto *sectionFont = new CFontDesc(font, 14, kBoldFace);
 
     // Title
     ctx->setFont(titleFont);
@@ -76,50 +72,80 @@ void InfoView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     // Creator
     ctx->setFont(bodyFont);
     ctx->setFontColor(CColor(190, 190, 190, 255));
-    double y = bounds.top + 140;
+    double y = bounds.top + 135;
     CRect creatorRect(bounds.left + 20, y, bounds.right - 20, y + 18);
-    ctx->drawString("Created by Jonathan Taylor", creatorRect, kCenterText);
+    ctx->drawString(i18n::str(i18n::StringId::InfoCreatedBy), creatorRect, kCenterText);
 
     // License
-    y += 40;
+    y += 36;
     ctx->setFontColor(CColor(200, 150, 50, 255));
     CRect licenseHeaderRect(bounds.left + 20, y, bounds.right - 20, y + 18);
-    ctx->drawString("License", licenseHeaderRect, kCenterText);
+    ctx->drawString(i18n::str(i18n::StringId::InfoLicenseHeader), licenseHeaderRect, kCenterText);
 
-    y += 24;
+    y += 22;
     ctx->setFont(bodyFont);
     ctx->setFontColor(CColor(190, 190, 190, 255));
     CRect licenseRect(bounds.left + 20, y, bounds.right - 20, y + 18);
     ctx->drawString("MIT License \xC2\xA9 2026 Jonathan Taylor", licenseRect, kCenterText);
 
     // Source code section
-    y += 45;
+    y += 36;
     ctx->setFontColor(CColor(200, 150, 50, 255));
     CRect srcHeaderRect(bounds.left + 20, y, bounds.right - 20, y + 18);
-    ctx->drawString("Source Code", srcHeaderRect, kCenterText);
+    ctx->drawString(i18n::str(i18n::StringId::InfoSourceCodeHeader), srcHeaderRect, kCenterText);
 
-    y += 24;
+    y += 22;
     ctx->setFont(linkFont);
     ctx->setFontColor(CColor(130, 170, 255, 255));
     CRect linkRect(bounds.left + 20, y, bounds.right - 20, y + 18);
     ctx->drawString("github.com/JonET/monksynth", linkRect, kCenterText);
-    // Store the link rect in local coordinates for hit testing
     githubLinkRect_ = CRect(bounds.left + 20, y, bounds.right - 20, y + 18);
     githubLinkRect_.offset(-bounds.left, -bounds.top);
 
     // Description
-    y += 40;
+    y += 32;
     ctx->setFont(bodyFont);
     ctx->setFontColor(CColor(150, 150, 155, 255));
     const char *descLines[] = {
-        "A vocal synthesizer inspired by Delay Lama.",
-        "Open source and free forever.",
+        i18n::str(i18n::StringId::InfoTagline1),
+        i18n::str(i18n::StringId::InfoTagline2),
     };
     for (const char *line : descLines) {
         CRect lr(bounds.left + 20, y, bounds.right - 20, y + 18);
         ctx->drawString(line, lr, kCenterText);
         y += 19;
     }
+
+    // ---- Contribute section ----
+    double cy = bounds.top + 355;
+    CRect sepRect(bounds.left + 30, cy, bounds.right - 30, cy + 1);
+    ctx->setFillColor(CColor(200, 150, 50, 120));
+    ctx->drawRect(sepRect, kDrawFilled);
+    cy += 8;
+
+    ctx->setFont(sectionFont);
+    ctx->setFontColor(CColor(200, 150, 50, 255));
+    CRect headerRect(bounds.left + 20, cy, bounds.right - 20, cy + 20);
+    ctx->drawString(i18n::str(i18n::StringId::ContributeHeader), headerRect, kCenterText);
+    cy += 22;
+
+    ctx->setFont(bodyFont);
+    ctx->setFontColor(CColor(190, 190, 190, 255));
+    CRect shareRect(bounds.left + 20, cy, bounds.right - 20, cy + 18);
+    ctx->drawString(i18n::str(i18n::StringId::ContributeShare), shareRect, kCenterText);
+    cy += 18;
+
+    ctx->setFontColor(CColor(150, 150, 155, 255));
+    CRect lookingRect(bounds.left + 20, cy, bounds.right - 20, cy + 18);
+    ctx->drawString(i18n::str(i18n::StringId::ContributeLookingFor), lookingRect, kCenterText);
+    cy += 20;
+
+    ctx->setFont(linkFont);
+    ctx->setFontColor(CColor(130, 170, 255, 255));
+    CRect folderRect(bounds.left + 20, cy, bounds.right - 20, cy + 18);
+    ctx->drawString(i18n::str(i18n::StringId::ContributeOpenFolder), folderRect, kCenterText);
+    openFolderRect_ = folderRect;
+    openFolderRect_.offset(-bounds.left, -bounds.top);
 
     // Close button
     CRect btn = closeBtnRect_;
@@ -129,13 +155,14 @@ void InfoView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
 
     ctx->setFont(btnFont);
     ctx->setFontColor(CColor(30, 30, 35, 255));
-    ctx->drawString("Close", btn, kCenterText);
+    ctx->drawString(i18n::str(i18n::StringId::InfoClose), btn, kCenterText);
 
     titleFont->forget();
     bodyFont->forget();
     smallFont->forget();
     btnFont->forget();
     linkFont->forget();
+    sectionFont->forget();
 }
 
 CMouseEventResult InfoView::onMouseDown(CPoint &where, const CButtonState &buttons) {
@@ -159,6 +186,11 @@ CMouseEventResult InfoView::onMouseDown(CPoint &where, const CButtonState &butto
         return kMouseEventHandled;
     }
 
+    if (openFolderRect_.pointInside(local)) {
+        openFolder(ThemeManager::getThemesDir());
+        return kMouseEventHandled;
+    }
+
     return kMouseEventHandled; // consume all clicks so they don't pass through
 }
 
@@ -169,7 +201,8 @@ CMouseEventResult InfoView::onMouseMoved(CPoint &where, const CButtonState & /*b
 
     auto *frame = getFrame();
     if (frame) {
-        if (closeBtnRect_.pointInside(local) || githubLinkRect_.pointInside(local))
+        if (closeBtnRect_.pointInside(local) || githubLinkRect_.pointInside(local) ||
+            openFolderRect_.pointInside(local))
             frame->setCursor(kCursorHand);
         else
             frame->setCursor(kCursorDefault);

@@ -63,6 +63,8 @@ fs::path ThemeManager::getConfigDir() {
 
 fs::path ThemeManager::getConfigPath() { return getConfigDir() / "config.json"; }
 
+fs::path ThemeManager::getThemesDir() { return getConfigDir() / "themes"; }
+
 // --- Constructor ---
 
 ThemeManager::ThemeManager() = default;
@@ -111,6 +113,10 @@ void ThemeManager::loadConfig() {
         if (fs::is_directory(candidate))
             themePath_ = candidate;
     }
+
+    std::string lang = jsonGetString(json, "language");
+    if (!lang.empty())
+        languagePref_ = lang;
 }
 
 void ThemeManager::saveConfig() const {
@@ -127,10 +133,11 @@ void ThemeManager::saveConfig() const {
     if (!themePath_.empty()) {
         // Write path with forward slashes for cross-platform readability.
         std::string pathStr = themePath_.generic_string();
-        f << "  \"themePath\": \"" << pathStr << "\"\n";
+        f << "  \"themePath\": \"" << pathStr << "\",\n";
     } else {
-        f << "  \"themePath\": \"\"\n";
+        f << "  \"themePath\": \"\",\n";
     }
+    f << "  \"language\": \"" << languagePref_ << "\"\n";
     f << "}\n";
 }
 
@@ -143,6 +150,11 @@ void ThemeManager::setThemePath(const fs::path &path) {
 
 void ThemeManager::resetTheme() {
     themePath_.clear();
+    saveConfig();
+}
+
+void ThemeManager::setLanguagePref(const std::string &pref) {
+    languagePref_ = pref;
     saveConfig();
 }
 

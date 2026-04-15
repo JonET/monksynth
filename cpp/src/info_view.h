@@ -26,6 +26,7 @@ class InfoView : public VSTGUI::CViewContainer {
   private:
     VSTGUI::CRect closeBtnRect_;
     VSTGUI::CRect githubLinkRect_;
+    VSTGUI::CRect openFolderRect_;
     CloseCallback closeCb_;
 };
 

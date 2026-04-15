@@ -96,6 +96,11 @@ smtg_add_vst3plugin(MonkSynth
     src/info_button.cpp
     src/open_url.h
     src/open_url.cpp
+    src/i18n.h
+    src/i18n.cpp
+    src/strings_en.h
+    src/strings_ja.h
+    src/strings_ko.h
     src/stb_impl.c
     ${DSP_DIR}/voice.c
     ${DSP_DIR}/delay.c

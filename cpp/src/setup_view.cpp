@@ -1,5 +1,7 @@
 #include "setup_view.h"
+#include "i18n.h"
 #include "open_url.h"
+#include "theme_manager.h"
 #include "version.h"
 
 #include "vstgui/lib/cdrawcontext.h"
@@ -7,14 +9,6 @@
 #include "vstgui/lib/cframe.h"
 #include "vstgui/lib/cgraphicspath.h"
 #include "vstgui/lib/cstring.h"
-
-#if __linux__
-#define MONKSYNTH_FONT "DejaVu Sans"
-#elif __APPLE__
-#define MONKSYNTH_FONT "Helvetica"
-#else
-#define MONKSYNTH_FONT "Arial"
-#endif
 
 using namespace VSTGUI;
 
@@ -49,6 +43,7 @@ static void drawRoundRect(CDrawContext *ctx, const CRect &r, CCoord radius, bool
 
 void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     CRect bounds = getViewSize();
+    const char *font = i18n::uiFont();
 
     // Enable anti-aliasing for sharp rendering on HiDPI
     ctx->setDrawMode(kAntiAliasing | kNonIntegralMode);
@@ -62,11 +57,12 @@ void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     ctx->setFillColor(CColor(200, 150, 50, 255));
     ctx->drawRect(accent, kDrawFilled);
 
-    auto *titleFont = new CFontDesc(MONKSYNTH_FONT, 24, kBoldFace);
-    auto *bodyFont = new CFontDesc(MONKSYNTH_FONT, 13);
-    auto *linkFont = new CFontDesc(MONKSYNTH_FONT, 13, kUnderlineFace);
-    auto *smallFont = new CFontDesc(MONKSYNTH_FONT, 11);
-    auto *btnFont = new CFontDesc(MONKSYNTH_FONT, 14, kBoldFace);
+    auto *titleFont = new CFontDesc(font, 24, kBoldFace);
+    auto *bodyFont = new CFontDesc(font, 13);
+    auto *linkFont = new CFontDesc(font, 13, kUnderlineFace);
+    auto *smallFont = new CFontDesc(font, 11);
+    auto *btnFont = new CFontDesc(font, 14, kBoldFace);
+    auto *sectionFont = new CFontDesc(font, 14, kBoldFace);
 
     // Title
     ctx->setFont(titleFont);
@@ -85,12 +81,12 @@ void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     ctx->setFontColor(CColor(190, 190, 190, 255));
 
     const char *lines[] = {
-        "MonkSynth needs a skin to display its GUI.",
+        i18n::str(i18n::StringId::SetupNeedsSkin),
         "",
-        "You can import the classic look from the",
-        "original Delay Lama v1.1 plugin (Windows).",
+        i18n::str(i18n::StringId::SetupImportFromClassic1),
+        i18n::str(i18n::StringId::SetupImportFromClassic2),
         "",
-        "Download it for free from:",
+        i18n::str(i18n::StringId::SetupDownloadFrom),
     };
     double lineY = bounds.top + 130;
     for (const char *line : lines) {
@@ -113,8 +109,8 @@ void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     ctx->setFontColor(CColor(190, 190, 190, 255));
     const char *lines2[] = {
         "",
-        "Then click below and select the",
-        "\"Delay Lama.dll\" file.",
+        i18n::str(i18n::StringId::SetupThenClick1),
+        i18n::str(i18n::StringId::SetupThenClick2),
     };
     for (const char *line : lines2) {
         CRect lr(bounds.left + 20, lineY, bounds.right - 20, lineY + 18);
@@ -130,27 +126,54 @@ void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
 
     ctx->setFont(btnFont);
     ctx->setFontColor(CColor(30, 30, 35, 255));
-    ctx->drawString("Import Classic Skin...", btn, kCenterText);
+    ctx->drawString(i18n::str(i18n::StringId::SetupImportButton), btn, kCenterText);
 
-    // Status text
+    // Status text (single line; squeezed into the gap above the contribute
+    // section so the two don't overlap).
     if (!statusText_.empty()) {
         ctx->setFont(smallFont);
         ctx->setFontColor(CColor(220, 180, 100, 255));
-        CRect statusRect(bounds.left + 20, btn.bottom + 15, bounds.right - 20, btn.bottom + 55);
+        CRect statusRect(bounds.left + 20, btn.bottom + 5, bounds.right - 20, btn.bottom + 20);
         ctx->drawString(statusText_.c_str(), statusRect, kCenterText);
     }
 
-    // Hint at bottom
-    ctx->setFont(smallFont);
-    ctx->setFontColor(CColor(100, 100, 110, 255));
-    CRect hintRect(bounds.left + 20, bounds.bottom - 35, bounds.right - 20, bounds.bottom - 15);
-    ctx->drawString("You can also load custom themes via right-click.", hintRect, kCenterText);
+    // ---- Contribute section ----
+    double cy = bounds.top + 400;
+    CRect sepRect(bounds.left + 30, cy, bounds.right - 30, cy + 1);
+    ctx->setFillColor(CColor(200, 150, 50, 120));
+    ctx->drawRect(sepRect, kDrawFilled);
+    cy += 8;
+
+    ctx->setFont(sectionFont);
+    ctx->setFontColor(CColor(200, 150, 50, 255));
+    CRect headerRect(bounds.left + 20, cy, bounds.right - 20, cy + 20);
+    ctx->drawString(i18n::str(i18n::StringId::ContributeHeader), headerRect, kCenterText);
+    cy += 22;
+
+    ctx->setFont(bodyFont);
+    ctx->setFontColor(CColor(190, 190, 190, 255));
+    CRect shareRect(bounds.left + 20, cy, bounds.right - 20, cy + 18);
+    ctx->drawString(i18n::str(i18n::StringId::ContributeShare), shareRect, kCenterText);
+    cy += 18;
+
+    ctx->setFontColor(CColor(150, 150, 155, 255));
+    CRect lookingRect(bounds.left + 20, cy, bounds.right - 20, cy + 18);
+    ctx->drawString(i18n::str(i18n::StringId::ContributeLookingFor), lookingRect, kCenterText);
+    cy += 20;
+
+    ctx->setFont(linkFont);
+    ctx->setFontColor(CColor(130, 170, 255, 255));
+    CRect folderRect(bounds.left + 20, cy, bounds.right - 20, cy + 18);
+    ctx->drawString(i18n::str(i18n::StringId::ContributeOpenFolder), folderRect, kCenterText);
+    openFolderRect_ = folderRect;
+    openFolderRect_.offset(-bounds.left, -bounds.top);
 
     titleFont->forget();
     bodyFont->forget();
     linkFont->forget();
     smallFont->forget();
     btnFont->forget();
+    sectionFont->forget();
 }
 
 CMouseEventResult SetupView::onMouseDown(CPoint &where, const CButtonState &buttons) {
@@ -172,6 +195,11 @@ CMouseEventResult SetupView::onMouseDown(CPoint &where, const CButtonState &butt
         return kMouseEventHandled;
     }
 
+    if (openFolderRect_.pointInside(local)) {
+        openFolder(ThemeManager::getThemesDir());
+        return kMouseEventHandled;
+    }
+
     return kMouseEventNotHandled;
 }
 
@@ -182,7 +210,8 @@ CMouseEventResult SetupView::onMouseMoved(CPoint &where, const CButtonState & /*
 
     auto *frame = getFrame();
     if (frame) {
-        if (importBtnRect_.pointInside(local) || urlLinkRect_.pointInside(local))
+        if (importBtnRect_.pointInside(local) || urlLinkRect_.pointInside(local) ||
+            openFolderRect_.pointInside(local))
             frame->setCursor(kCursorHand);
         else
             frame->setCursor(kCursorDefault);
