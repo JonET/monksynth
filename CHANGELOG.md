@@ -4,6 +4,8 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0-beta.8] - 2026-04-15
+
 ### Added
 - `Pitch Bend` parameter (±12 semitones, automatable) that actually bends the pitch of held notes, independent of the existing `Vowel` parameter
 - Right-click → **Pitch Bend** submenu with `Classic (Vowel)` and `Pitch` options; toggle controls where the hardware MIDI pitch wheel lands. Classic is the default and preserves Delay Lama compatibility. The host is notified via `restartComponent(kMidiCCAssignmentChanged)` so the switch takes effect without reloading the plugin.
@@ -101,7 +103,8 @@ All notable changes to MonkSynth will be documented in this file.
 - 5 factory presets
 - CI/CD with cross-platform builds (Windows, macOS, Linux)
 
-[Unreleased]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.7...HEAD
+[Unreleased]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.8...HEAD
+[0.2.0-beta.8]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.7...v0.2.0-beta.8
 [0.2.0-beta.7]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.6...v0.2.0-beta.7
 [0.2.0-beta.6]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.5...v0.2.0-beta.6
 [0.2.0-beta.5]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.4...v0.2.0-beta.5
