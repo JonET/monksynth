@@ -4,6 +4,16 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0-beta.7] - 2026-04-14
+
+### Added
+- Japanese and Korean UI localization for the setup overlay, info overlay, right-click context menu, and DLL-importer error messages (~35 strings). Parameter names and units stay English so DAW automation lanes, presets, and tutorials continue to match. Translations are LLM-generated and have not yet been reviewed by a native speaker — corrections are very welcome (see `cpp/src/strings_ja.h` and `strings_ko.h`).
+- Automatic UI language detection from OS locale (`GetUserDefaultLocaleName` on Windows, `CFLocale` on macOS, `$LANG`/`$LC_*` on Linux), with manual override via right-click → Language submenu (Auto / English / 日本語 / 한국어)
+- CJK-capable font fallback: Yu Gothic UI / Malgun Gothic on Windows, Hiragino Sans / Apple SD Gothic Neo on macOS, Noto Sans CJK on Linux
+- "Create your own theme" contribution section in both the setup and info overlays, with a clickable "Open themes folder" link — actively looking for fresh default themes to ship with future releases
+- "Open Themes Folder" item in the right-click menu that reveals the user theme directory in the system file browser
+- Language preference persisted in `config.json` alongside the existing theme path
+
 ## [0.2.0-beta.6] - 2026-04-14
 
 ### Fixed
@@ -82,7 +92,8 @@ All notable changes to MonkSynth will be documented in this file.
 - 5 factory presets
 - CI/CD with cross-platform builds (Windows, macOS, Linux)
 
-[Unreleased]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.6...HEAD
+[Unreleased]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.7...HEAD
+[0.2.0-beta.7]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.6...v0.2.0-beta.7
 [0.2.0-beta.6]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.5...v0.2.0-beta.6
 [0.2.0-beta.5]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.4...v0.2.0-beta.5
 [0.2.0-beta.4]: https://github.com/JonET/monksynth/compare/v0.2.0-beta.3...v0.2.0-beta.4
