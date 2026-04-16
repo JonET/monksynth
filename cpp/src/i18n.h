@@ -33,6 +33,8 @@ enum class StringId : int {
     MenuPitchBend,
     MenuPitchBendClassic,
     MenuPitchBendPitch,
+    MenuPitchBendBoth,
+    MenuPitchBendBothInverted,
     FileSelectThemeJson,
     FileSelectDll,
     FileExtJson,

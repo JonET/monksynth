@@ -42,25 +42,33 @@ tresult PLUGIN_API Processor::terminate() {
     return AudioEffect::terminate();
 }
 
+void Processor::applyParametersToDsp() {
+    if (!synth_) return;
+    monk_synth_set_glide(synth_, paramValues_[kPortTime]);
+    monk_synth_set_vowel(synth_, paramValues_[kVowel]);
+    monk_synth_set_delay_mix(synth_, paramValues_[kDelay]);
+    monk_synth_set_voice(synth_, paramValues_[kHeadSize]);
+    monk_synth_set_vibrato(synth_, paramValues_[kVibrato]);
+    monk_synth_set_vibrato_rate(synth_, paramValues_[kVibratoRate]);
+    monk_synth_set_aspiration(synth_, paramValues_[kAspiration]);
+    monk_synth_set_attack(synth_, paramValues_[kAttack] * 5.0f);
+    monk_synth_set_decay(synth_, paramValues_[kDecay] * 5.0f);
+    monk_synth_set_sustain(synth_, paramValues_[kSustain]);
+    monk_synth_set_release(synth_, paramValues_[kRelease] * 5.0f);
+    monk_synth_set_unison(synth_, (int)(paramValues_[kUnison] * 9.0f + 1.5f));
+    monk_synth_set_unison_detune(synth_, paramValues_[kUnisonDetune] * 50.0f);
+    monk_synth_set_delay_rate(synth_, paramValues_[kDelayRate]);
+    monk_synth_set_level(synth_, paramValues_[kLevel]);
+    monk_synth_set_unison_voice_spread(synth_, paramValues_[kUnisonVoiceSpread] * 0.5f);
+    monk_synth_set_pitch_bend(synth_, (paramValues_[kPitchBend] - 0.5f) * 24.0f);
+}
+
 tresult PLUGIN_API Processor::setActive(TBool state) {
     if (state) {
         if (!synth_) {
             synth_ = monk_synth_new(static_cast<float>(processSetup.sampleRate));
         }
-        // Apply current parameter values
-        monk_synth_set_glide(synth_, paramValues_[kPortTime]);
-        monk_synth_set_vowel(synth_, paramValues_[kVowel]);
-        monk_synth_set_delay_mix(synth_, paramValues_[kDelay]);
-        monk_synth_set_voice(synth_, paramValues_[kHeadSize]);
-        monk_synth_set_vibrato(synth_, paramValues_[kVibrato]);
-        monk_synth_set_vibrato_rate(synth_, paramValues_[kVibratoRate]);
-        monk_synth_set_aspiration(synth_, paramValues_[kAspiration]);
-        monk_synth_set_attack(synth_, paramValues_[kAttack] * 3.0f);
-        monk_synth_set_decay(synth_, paramValues_[kDecay] * 3.0f);
-        monk_synth_set_sustain(synth_, paramValues_[kSustain]);
-        monk_synth_set_release(synth_, paramValues_[kRelease] * 3.0f);
-        monk_synth_set_level(synth_, paramValues_[kLevel]);
-        monk_synth_set_pitch_bend(synth_, (paramValues_[kPitchBend] - 0.5f) * 24.0f);
+        applyParametersToDsp();
     } else {
         if (synth_) {
             monk_synth_reset(synth_);
@@ -108,6 +116,7 @@ tresult PLUGIN_API Processor::setState(IBStream* state) {
             return kResultFalse;
         paramValues_[i] = v;
     }
+    applyParametersToDsp();
     return kResultOk;
 }
 
@@ -178,10 +187,33 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
                 case kXYVowel:
                     monk_synth_set_vowel(synth_, fval);
                     break;
-                case kPitchBend:
+                case kPitchBend: {
                     // RangeParameter [-12,12]: normalized 0.5 = 0 semitones.
                     monk_synth_set_pitch_bend(synth_, (fval - 0.5f) * 24.0f);
+                    // In Both / BothInverted modes the same input ALSO drives
+                    // vowel. Suppressed while the XY pad is tracking, since
+                    // the pad's smoothed vowel writeback (below) would fight
+                    // this write in the same block.
+                    auto mode = pitchBendModeFromNormalized(paramValues_[kPitchBendRouting]);
+                    if (!xyNoteActive_ &&
+                        (mode == PitchBendMode::Both ||
+                         mode == PitchBendMode::BothInverted)) {
+                        float vowelVal =
+                            (mode == PitchBendMode::BothInverted) ? (1.0f - fval) : fval;
+                        monk_synth_set_vowel(synth_, vowelVal);
+                        paramValues_[kVowel] = vowelVal;
+                        // Notify the host so the vowel slider tracks and
+                        // automation records the linked move.
+                        if (data.outputParameterChanges) {
+                            int32 vIndex = 0;
+                            auto *vq =
+                                data.outputParameterChanges->addParameterData(kVowel, vIndex);
+                            if (vq)
+                                vq->addPoint(0, static_cast<ParamValue>(vowelVal), vIndex);
+                        }
+                    }
                     break;
+                }
                 case kPitchBendRouting:
                     // Stored in paramValues_ only; the controller handles
                     // IMidiMapping re-query. No DSP side-effect from here.
@@ -249,17 +281,12 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         }
     }
 
-    // --- Send smoothed values back to UI so faders animate the glide ---
+    // --- Send smoothed vowel back to UI so the vowel fader animates the glide ---
     if (xyNoteActive_ && data.outputParameterChanges) {
         int32 index = 0;
         auto* vq = data.outputParameterChanges->addParameterData(kVowel, index);
         if (vq)
             vq->addPoint(0, static_cast<ParamValue>(monk_synth_get_vowel(synth_)), index);
-
-        index = 0;
-        auto* pq = data.outputParameterChanges->addParameterData(kXYPitch, index);
-        if (pq)
-            pq->addPoint(0, static_cast<ParamValue>(monk_synth_get_pitch_normalized(synth_)), index);
     }
 
     output.silenceFlags = 0;

@@ -45,7 +45,7 @@
 			"Unison": "11",
 			"UnisonDetune": "12",
 			"DelayRate": "13",
-			"XYPitch": "101"
+			"PitchBend": "19"
 		},
 		"custom": {
 			"UIEditController": {
@@ -170,26 +170,50 @@
 							"zoom-factor": "1.5"
 						}
 					},
-					"CView": {
+					"CSlider": {
 						"attributes": {
-							"class": "CView",
-							"custom-view-name": "VowelIndicator",
+							"bitmap-offset": "0, 0",
+							"class": "CSlider",
+							"control-tag": "Vowel",
+							"draw-back": "false",
+							"draw-frame": "false",
+							"draw-value": "false",
+							"frame-width": "1",
+							"handle-bitmap": "fader_sm_right",
+							"handle-offset": "0, 0",
+							"mode": "use global",
 							"opacity": "1",
+							"orientation": "vertical",
 							"origin": "86, 358",
+							"reverse-orientation": "false",
 							"size": "10, 89",
 							"transparent": "true",
-							"wants-focus": "false"
+							"wants-focus": "true",
+							"wheel-inc-value": "0.01",
+							"zoom-factor": "10"
 						}
 					},
-					"CView": {
+					"CSlider": {
 						"attributes": {
-							"class": "CView",
-							"custom-view-name": "PitchIndicator",
+							"bitmap-offset": "0, 0",
+							"class": "CSlider",
+							"control-tag": "PitchBend",
+							"draw-back": "false",
+							"draw-frame": "false",
+							"draw-value": "false",
+							"frame-width": "1",
+							"handle-bitmap": "fader_sm_down",
+							"handle-offset": "0, 0",
+							"mode": "use global",
 							"opacity": "1",
+							"orientation": "horizontal",
 							"origin": "91, 352",
+							"reverse-orientation": "false",
 							"size": "175, 10",
 							"transparent": "true",
-							"wants-focus": "false"
+							"wants-focus": "true",
+							"wheel-inc-value": "0.01",
+							"zoom-factor": "10"
 						}
 					},
 					"CSlider": {

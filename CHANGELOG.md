@@ -4,6 +4,18 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Vowel and Pitch sliders inside the plugin window are now real parameter controls — FL Studio users can right-click them to create automation clips or link to a controller. Previously they were read-only indicators with no control-tag, so host right-click menus had nothing to grab.
+- **Pitch Bend** submenu gains two new routing modes: `Both (Pitch + Vowel)` and `Both (Pitch + Inverted Vowel)`. In Both modes, moving the hardware pitch wheel drives pitch bend and vowel simultaneously (same direction or opposite). Classic (0.0) and Pitch (1.0) still map to the same saved-state values, so existing sessions and presets load unchanged.
+- Pitch bend slider springs back to center on release with a 180 ms cubic ease-out, matching how a hardware pitch wheel behaves. The spring-back is also recorded into automation as a fresh edit gesture.
+
+### Fixed
+- Loading a preset via the host's preset arrows no longer leaves the synth stuck on the previous sound until a control is nudged — `setState` now pushes all parameter values to the DSP. The attack/decay/release scaling (3.0 → 5.0) was also unified with the runtime path so initial load matches the rest of the session.
+- Releasing the XY pad while a MIDI note is still held no longer kicks the monk into the idle shuffle animation. The monk's hold-vs-idle state is now driven from the processor's combined (MIDI || XY pad) signal instead of reacting to pad release directly.
+
+### Removed
+- Dead `kXYPitch` private display parameter and its audio-thread writeback (the pitch slider now represents pitch bend directly, so the smoothed XY-pad pitch no longer needs a separate feedback channel).
+
 ## [0.2.0-beta.8] - 2026-04-15
 
 ### Added

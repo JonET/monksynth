@@ -2,7 +2,6 @@
 #include "pluginterfaces/base/ibstream.h"
 #include "dll_extractor.h"
 #include "i18n.h"
-#include "indicator.h"
 #include "info_button.h"
 #include "info_view.h"
 #include "monk_view.h"
@@ -20,6 +19,7 @@
 #include "vstgui/lib/platform/platformfactory.h"
 #include "vstgui/uidescription/uidescription.h"
 
+#include <cmath>
 #include <stdexcept>
 
 using namespace Steinberg;
@@ -73,20 +73,6 @@ CView *Controller::createCustomView(UTF8StringPtr name, const UIAttributes & /*a
     }
     if (UTF8StringView(name) == "XYPad") {
         return new XYPadView(CRect(0, 0, 100, 100), nullptr, this);
-    }
-    if (UTF8StringView(name) == "VowelIndicator") {
-        CBitmap *bmp = description->getBitmap("fader_sm_right");
-        auto *ind = new Indicator(CRect(0, 0, 10, 89), bmp, true);
-        ind->setValueNormalized(static_cast<float>(getParamNormalized(kVowel)));
-        vowelIndicator_ = ind;
-        return ind;
-    }
-    if (UTF8StringView(name) == "PitchIndicator") {
-        CBitmap *bmp = description->getBitmap("fader_sm_down");
-        auto *ind = new Indicator(CRect(0, 0, 175, 10), bmp, false);
-        ind->setValueNormalized(static_cast<float>(getParamNormalized(kXYPitch)));
-        pitchIndicator_ = ind;
-        return ind;
     }
     if (UTF8StringView(name) == "InfoButton") {
         auto *btn = new InfoButton(CRect(0, 0, 25, 25));
@@ -181,8 +167,6 @@ void Controller::showInfoOverlay(VST3Editor *editor) {
 
 void Controller::willClose(VST3Editor * /*editor*/) {
     monkView_ = nullptr;
-    vowelIndicator_ = nullptr;
-    pitchIndicator_ = nullptr;
     infoButton_ = nullptr;
     currentEditor_ = nullptr;
 }
@@ -362,29 +346,32 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
 
     // ---- Pitch Bend routing submenu ----
     auto *pbMenu = new COptionMenu();
-    const bool pbRoutingIsPitch = getParamNormalized(kPitchBendRouting) >= 0.5;
+    const auto currentMode = pitchBendModeFromNormalized(
+        static_cast<float>(getParamNormalized(kPitchBendRouting)));
 
     struct PbOption {
         i18n::StringId labelId;
-        bool isPitch;
+        PitchBendMode mode;
     };
     const PbOption pbOpts[] = {
-        {i18n::StringId::MenuPitchBendClassic, false},
-        {i18n::StringId::MenuPitchBendPitch, true},
+        {i18n::StringId::MenuPitchBendClassic, PitchBendMode::Classic},
+        {i18n::StringId::MenuPitchBendPitch, PitchBendMode::Pitch},
+        {i18n::StringId::MenuPitchBendBoth, PitchBendMode::Both},
+        {i18n::StringId::MenuPitchBendBothInverted, PitchBendMode::BothInverted},
     };
 
     for (const auto &opt : pbOpts) {
         CCommandMenuItem::Desc desc(i18n::str(opt.labelId));
-        if (pbRoutingIsPitch == opt.isPitch)
+        if (currentMode == opt.mode)
             desc.flags |= CMenuItem::kChecked;
         auto *pbItem = new CCommandMenuItem(std::move(desc));
-        bool target = opt.isPitch;
+        PitchBendMode target = opt.mode;
         pbItem->setActions([this, target](CCommandMenuItem *) {
             // Push the value through beginEdit/performEdit/endEdit so the
             // host records the change and forwards it to the processor;
             // setParamNormalized separately updates our own state and fires
             // the restartComponent(kMidiCCAssignmentChanged) notification.
-            ParamValue v = target ? 1.0 : 0.0;
+            ParamValue v = pitchBendModeToNormalized(target);
             beginEdit(kPitchBendRouting);
             performEdit(kPitchBendRouting, v);
             endEdit(kPitchBendRouting);
@@ -395,9 +382,23 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
     // Surface the active mode in the parent menu label so users see the
     // current state without opening the submenu. The kChecked flag on the
     // submenu items alone is not reliably rendered by all hosts.
+    i18n::StringId currentLabel = i18n::StringId::MenuPitchBendClassic;
+    switch (currentMode) {
+        case PitchBendMode::Classic:
+            currentLabel = i18n::StringId::MenuPitchBendClassic;
+            break;
+        case PitchBendMode::Both:
+            currentLabel = i18n::StringId::MenuPitchBendBoth;
+            break;
+        case PitchBendMode::BothInverted:
+            currentLabel = i18n::StringId::MenuPitchBendBothInverted;
+            break;
+        case PitchBendMode::Pitch:
+            currentLabel = i18n::StringId::MenuPitchBendPitch;
+            break;
+    }
     std::string pbLabel = std::string(i18n::str(i18n::StringId::MenuPitchBend)) + ": " +
-                          i18n::str(pbRoutingIsPitch ? i18n::StringId::MenuPitchBendPitch
-                                                     : i18n::StringId::MenuPitchBendClassic);
+                          i18n::str(currentLabel);
     menu->addEntry(pbMenu, UTF8String(pbLabel));
 
     // No "Reset to Default" — there's no built-in theme. Users switch
@@ -407,7 +408,7 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
 }
 
 bool Controller::isPrivateParameter(ParamID paramID) {
-    return paramID == kXYPitch || paramID == kNoteActive;
+    return paramID == kNoteActive;
 }
 
 tresult PLUGIN_API Controller::getMidiControllerAssignment(int32 busIndex, int16 /*channel*/,
@@ -417,17 +418,19 @@ tresult PLUGIN_API Controller::getMidiControllerAssignment(int32 busIndex, int16
         return kResultFalse;
 
     switch (midiControllerNumber) {
-        case ControllerNumbers::kPitchBend:
-            // Dynamic routing: the kPitchBendRouting hidden parameter
-            // decides whether the hardware pitch wheel drives Vowel (Classic
-            // / Delay Lama compat) or PitchBend (standard synth). When the
-            // user flips the toggle, setParamNormalized below notifies the
-            // host via restartComponent(kMidiCCAssignmentChanged) so this
-            // function is re-queried.
-            id = (getParamNormalized(kPitchBendRouting) >= 0.5)
-                 ? kPitchBend
-                 : kVowel;
+        case ControllerNumbers::kPitchBend: {
+            // Dynamic routing: kPitchBendRouting decides where the hardware
+            // pitch wheel goes. Classic → Vowel only (Delay Lama compat).
+            // All other modes → PitchBend; the processor secondarily drives
+            // Vowel for Both / BothInverted. When the user changes mode,
+            // setParamNormalized below notifies the host via
+            // restartComponent(kMidiCCAssignmentChanged) so this function
+            // is re-queried.
+            auto mode = pitchBendModeFromNormalized(
+                static_cast<float>(getParamNormalized(kPitchBendRouting)));
+            id = (mode == PitchBendMode::Classic) ? kVowel : kPitchBend;
             return kResultTrue;
+        }
         case ControllerNumbers::kCtrlModWheel: id = kVibrato; return kResultTrue;
         case ControllerNumbers::kCtrlPortaTime: id = kPortTime; return kResultTrue;
         case ControllerNumbers::kCtrlVolume: id = kLevel; return kResultTrue;
@@ -448,11 +451,62 @@ tresult PLUGIN_API Controller::setComponentState(IBStream *state) {
 }
 
 tresult PLUGIN_API Controller::beginEdit(ParamID tag) {
+    if (tag == kPitchBend) {
+        if (pbSpringState_ == PbSpring::Springing) {
+            // User grabbed the pitch bend mid-animation. Kill the timer and
+            // close the spring edit gesture before the user's new gesture
+            // begins, so we don't nest edits on the same parameter.
+            pitchBendSpringTimer_ = nullptr;
+            pbSpringState_ = PbSpring::Idle;
+            EditController::endEdit(kPitchBend);
+        }
+        pbSpringState_ = PbSpring::UserDragging;
+    }
     return EditController::beginEdit(tag);
 }
 
 tresult PLUGIN_API Controller::endEdit(ParamID tag) {
-    return EditController::endEdit(tag);
+    tresult result = EditController::endEdit(tag);
+    if (tag == kPitchBend && pbSpringState_ == PbSpring::UserDragging) {
+        pbSpringState_ = PbSpring::Idle;
+        ParamValue current = getParamNormalized(kPitchBend);
+        if (std::abs(current - 0.5) > 1e-4)
+            startPitchBendSpring(current);
+    }
+    return result;
+}
+
+void Controller::startPitchBendSpring(double from) {
+    pbSpringStart_ = from;
+    pbSpringElapsedMs_ = 0.0;
+    pbSpringState_ = PbSpring::Springing;
+    // Bypass our override — we manage the gesture state ourselves.
+    EditController::beginEdit(kPitchBend);
+    pitchBendSpringTimer_ = VSTGUI::makeOwned<VSTGUI::CVSTGUITimer>(
+        [this](VSTGUI::CVSTGUITimer *) { tickPitchBendSpring(); }, 16);
+}
+
+void Controller::tickPitchBendSpring() {
+    if (pbSpringState_ != PbSpring::Springing)
+        return;
+
+    constexpr double kDurationMs = 180.0;
+    pbSpringElapsedMs_ += 16.0;
+    double t = pbSpringElapsedMs_ / kDurationMs;
+    if (t > 1.0)
+        t = 1.0;
+    // Cubic ease-out
+    double eased = 1.0 - std::pow(1.0 - t, 3.0);
+    double v = pbSpringStart_ + (0.5 - pbSpringStart_) * eased;
+
+    performEdit(kPitchBend, v);
+    setParamNormalized(kPitchBend, v);
+
+    if (t >= 1.0) {
+        pitchBendSpringTimer_ = nullptr;
+        pbSpringState_ = PbSpring::Idle;
+        EditController::endEdit(kPitchBend);
+    }
 }
 
 tresult PLUGIN_API Controller::setParamNormalized(ParamID tag, ParamValue value) {
@@ -465,16 +519,11 @@ tresult PLUGIN_API Controller::setParamNormalized(ParamID tag, ParamValue value)
         if (tag == kVowel) {
             if (monkView_)
                 monkView_->setVowelValue(static_cast<float>(value));
-            if (vowelIndicator_) {
-                vowelIndicator_->setValueNormalized(static_cast<float>(value));
-                vowelIndicator_->invalid();
-            }
-        } else if (tag == kXYPitch) {
-            if (pitchIndicator_) {
-                pitchIndicator_->setValueNormalized(static_cast<float>(value));
-                pitchIndicator_->invalid();
-            }
-        } else if (tag == kXYNoteOn || tag == kNoteActive) {
+        } else if (tag == kNoteActive) {
+            // Drive the monk's hold-vs-idle state from the processor's
+            // combined (MIDI || XY pad) signal only. Reacting to kXYNoteOn
+            // directly would drop the monk to idle on pad release even when
+            // a MIDI note is still held.
             if (monkView_)
                 monkView_->setNoteActive(value > 0.5);
         } else if (tag == kPitchBendRouting) {
@@ -573,15 +622,13 @@ tresult PLUGIN_API Controller::initialize(FUnknown *context) {
         new RangeParameter(STR16("Pitch Bend"), kPitchBend, STR16("st"),
                            -12.0, 12.0, 0.0, 0, ParameterInfo::kCanAutomate));
 
-    // Hidden routing toggle: 0 = Classic (hardware pitch wheel → Vowel,
-    // Delay Lama compat), 1 = Pitch (wheel → PitchBend). Persists in VST3
-    // state so it travels with presets and DAW sessions.
-    parameters.addParameter(STR16("PB Routing"), STR16(""), 1, 0.0,
+    // Hidden routing step: Classic (wheel → Vowel, Delay Lama compat) /
+    // Both / Both inverted / Pitch (wheel → PitchBend). Persists in VST3
+    // state so it travels with presets and DAW sessions. 4 steps, with
+    // Classic at 0.0 and Pitch at 1.0 so old binary saves still map
+    // correctly.
+    parameters.addParameter(STR16("PB Routing"), STR16(""), 3, 0.0,
                             ParameterInfo::kIsHidden, kPitchBendRouting);
-
-    // Private parameters (not exposed to host automation)
-    parameters.addParameter(STR16("XY Pitch Display"), STR16(""), 0, 0.5, ParameterInfo::kIsHidden,
-                            kXYPitch);
 
     // Output parameter from processor (read-only, for monk animation)
     parameters.addParameter(STR16("Note Active"), STR16(""), 1, 0.0,

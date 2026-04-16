@@ -30,6 +30,8 @@ class Processor : public Steinberg::Vst::AudioEffect {
     Steinberg::tresult PLUGIN_API getState(Steinberg::IBStream *state) override;
 
   private:
+    void applyParametersToDsp();
+
     MonkSynthEngine *synth_ = nullptr;
     // Order must match the ParamID enum in plugin_cids.h.
     // PitchBend (idx 19): 0.5 = 0 semitones (RangeParameter midpoint).

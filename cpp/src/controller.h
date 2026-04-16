@@ -5,6 +5,7 @@
 #include "pluginterfaces/vst/ivstmidicontrollers.h"
 #include "public.sdk/source/vst/vsteditcontroller.h"
 #include "vstgui/lib/cbitmap.h"
+#include "vstgui/lib/cvstguitimer.h"
 #include "vstgui/lib/platform/platformfactory.h"
 #include "vstgui/plugin-bindings/vst3editor.h"
 #include "vstgui/uidescription/uidescription.h"
@@ -110,14 +111,25 @@ class Controller : public Steinberg::Vst::EditController,
     void showSetupOverlay(VST3Editor *editor);
     void showInfoOverlay(VST3Editor *editor);
 
+    // Pitch-wheel spring-back: after the user releases the pitch bend slider,
+    // ease the value back to center in a fresh edit gesture so the return
+    // also gets recorded into automation, matching how DAWs record a hardware
+    // pitch wheel.
+    enum class PbSpring { Idle, UserDragging, Springing };
+    void startPitchBendSpring(double from);
+    void tickPitchBendSpring();
+
     MonkView *monkView_ = nullptr;
-    VSTGUI::CControl *vowelIndicator_ = nullptr;
-    VSTGUI::CControl *pitchIndicator_ = nullptr;
     InfoButton *infoButton_ = nullptr;
     VST3Editor *currentEditor_ = nullptr;
     ThemeManager themeManager_;
     int noteRefCount_ = 0;  // tracks active touches on vowel/pitch controls
     bool inSetParam_ = false; // re-entrancy guard for setParamNormalized
+
+    VSTGUI::SharedPointer<VSTGUI::CVSTGUITimer> pitchBendSpringTimer_;
+    PbSpring pbSpringState_ = PbSpring::Idle;
+    double pbSpringStart_ = 0.5;
+    double pbSpringElapsedMs_ = 0.0;
 };
 
 } // namespace MonkSynth

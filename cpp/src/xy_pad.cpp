@@ -56,7 +56,7 @@ void XYPadView::updateFromMouse(const CPoint &where) {
     if (controller_) {
         controller_->performEdit(kXYVowel, yNorm_);
         controller_->setParamNormalized(kXYVowel, yNorm_);
-        // X axis -> pitch target (processor smooths and writes back to kXYPitch)
+        // X axis -> pitch target
         controller_->performEdit(kXYPitchTarget, xNorm_);
         controller_->setParamNormalized(kXYPitchTarget, xNorm_);
     }

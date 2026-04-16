@@ -64,6 +64,10 @@ constexpr const char *kStringsEn[] = {
     "Classic (Vowel)",
     // MenuPitchBendPitch
     "Pitch",
+    // MenuPitchBendBoth
+    "Both (Pitch + Vowel)",
+    // MenuPitchBendBothInverted
+    "Both (Pitch + Inverted Vowel)",
     // FileSelectThemeJson
     "Select theme.json in Theme Folder",
     // FileSelectDll
