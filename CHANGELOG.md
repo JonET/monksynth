@@ -4,6 +4,9 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- UI terminology: standardized on "theme" instead of mixing "theme" and "skin" across the setup screen, right-click menu, and translations (EN/JA/KO). Thanks to @nonno2010sw-ux for the suggestion in #10.
+
 ## [0.2.0-beta.10] - 2026-04-15
 
 ### Fixed

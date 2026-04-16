@@ -6,7 +6,7 @@
 
 namespace MonkSynth {
 
-// Invisible hit zone over the skin's "?" area.
+// Invisible hit zone over the theme's "?" area.
 class InfoButton : public VSTGUI::CView {
   public:
     using ClickCallback = std::function<void()>;

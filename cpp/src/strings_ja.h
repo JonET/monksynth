@@ -16,12 +16,12 @@ namespace MonkSynth {
 namespace i18n {
 
 constexpr const char *kStringsJa[] = {
-    // SetupNeedsSkin
-    "MonkSynth を使うにはスキンが必要です。",
+    // SetupNeedsTheme
+    "MonkSynth を使うにはテーマが必要です。",
     // SetupImportFromClassic1
     "オリジナルの Delay Lama v1.1",
     // SetupImportFromClassic2
-    "(Windows 版) からクラシックスキンを読み込めます。",
+    "(Windows 版) からクラシックテーマを読み込めます。",
     // SetupDownloadFrom
     "こちらから無料でダウンロードできます：",
     // SetupThenClick1
@@ -29,7 +29,7 @@ constexpr const char *kStringsJa[] = {
     // SetupThenClick2
     "「Delay Lama.dll」を選択してください。",
     // SetupImportButton
-    "クラシックスキンを読み込む...",
+    "クラシックテーマを読み込む...",
 
     // InfoCreatedBy
     "制作：Jonathan Taylor",
@@ -58,7 +58,7 @@ constexpr const char *kStringsJa[] = {
     // MenuLoadTheme
     "テーマを読み込む...",
     // MenuImportClassic
-    "DLL からクラシックスキンを読み込む...",
+    "DLL からクラシックテーマを読み込む...",
     // MenuOpenFolder
     "テーマフォルダを開く",
     // MenuLanguage

@@ -8,9 +8,9 @@ A monophonic vocal synthesizer that sounds like a monk chanting. Built using for
 
 **[Download the latest release](https://github.com/JonET/monksynth/releases)** — available for Windows, macOS, and Linux.
 
-<img src="docs/screenshot1.png" alt="MonkSynth running in Ableton Live 12 with the classic Delay Lama skin" width="600">
+<img src="docs/screenshot1.png" alt="MonkSynth running in Ableton Live 12 with the classic Delay Lama theme" width="600">
 
-*MonkSynth v0.0.1-beta.1 in Ableton Live 12, with the classic skin imported from the original Delay Lama DLL*
+*MonkSynth v0.0.1-beta.1 in Ableton Live 12, with the classic theme imported from the original Delay Lama DLL*
 
 ## Features
 
@@ -21,8 +21,8 @@ A monophonic vocal synthesizer that sounds like a monk chanting. Built using for
 - Automatable **Pitch Bend** parameter (±12 semitones). The hardware pitch wheel is routable to either Vowel (Classic / Delay Lama compat, the default) or Pitch via right-click → Pitch Bend
 - ADSR envelope with configurable attack, decay, sustain, release
 - Unison mode with up to 10 detuned voices and voice spread
-- Theme system with right-click context menu for custom skins
-- Import classic skin from the original Delay Lama DLL
+- Theme system with right-click context menu for custom themes
+- Import classic theme from the original Delay Lama DLL
 - 5 factory presets
 - VST3 plugin format (Windows, macOS, Linux) and Audio Unit (macOS)
 
@@ -73,7 +73,7 @@ CI runs the test suite on the Linux job before packaging each release, so any DS
 
 ## Themes
 
-MonkSynth ships without a built-in skin. On first launch, it shows a setup screen where you can import the classic look from the original Delay Lama DLL (available as freeware from [audionerdz.nl](http://www.audionerdz.nl/download.htm)).
+MonkSynth ships without a built-in theme. On first launch, it shows a setup screen where you can import the classic look from the original Delay Lama DLL (available as freeware from [audionerdz.nl](http://www.audionerdz.nl/download.htm)).
 
 You can also load custom themes via right-click on the plugin GUI. A theme folder contains a `theme.json` manifest and any combination of these PNG files (missing ones fall back to 1x1 placeholders):
 
@@ -83,7 +83,7 @@ You can also load custom themes via right-click on the plugin GUI. A theme folde
 - `fader-down-large.png` / `fader-down-sm.png` / `fader-right-sm.png` — fader handles
 - `info.png` — info overlay (253x275)
 
-**Looking for fresh default themes to ship with the plugin.** If you design a skin you're proud of, open a PR — I'd love to include contributed themes in the next release. The right-click menu has an "Open Themes Folder" item that reveals where themes live on disk.
+**Looking for fresh default themes to ship with the plugin.** If you design a theme you're proud of, open a PR — I'd love to include contributed themes in the next release. The right-click menu has an "Open Themes Folder" item that reveals where themes live on disk.
 
 ## Translations
 

@@ -81,7 +81,7 @@ void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     ctx->setFontColor(CColor(190, 190, 190, 255));
 
     const char *lines[] = {
-        i18n::str(i18n::StringId::SetupNeedsSkin),
+        i18n::str(i18n::StringId::SetupNeedsTheme),
         "",
         i18n::str(i18n::StringId::SetupImportFromClassic1),
         i18n::str(i18n::StringId::SetupImportFromClassic2),

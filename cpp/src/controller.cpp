@@ -264,7 +264,7 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
     });
     menu->addEntry(openFolderItem);
 
-    // "Import Classic Skin from DLL..." item.
+    // "Import Classic Theme from DLL..." item.
     auto *importItem =
         new CCommandMenuItem(CCommandMenuItem::Desc(i18n::str(i18n::StringId::MenuImportClassic)));
     importItem->setActions([this, themedEditor](CCommandMenuItem *) {

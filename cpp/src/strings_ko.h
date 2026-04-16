@@ -16,12 +16,12 @@ namespace MonkSynth {
 namespace i18n {
 
 constexpr const char *kStringsKo[] = {
-    // SetupNeedsSkin
-    "MonkSynth의 GUI를 표시하려면 스킨이 필요해요.",
+    // SetupNeedsTheme
+    "MonkSynth의 GUI를 표시하려면 테마가 필요해요.",
     // SetupImportFromClassic1
     "원본 Delay Lama v1.1 플러그인",
     // SetupImportFromClassic2
-    "(Windows)에서 클래식 스킨을 가져올 수 있습니다.",
+    "(Windows)에서 클래식 테마를 가져올 수 있습니다.",
     // SetupDownloadFrom
     "아래에서 무료로 다운로드:",
     // SetupThenClick1
@@ -29,7 +29,7 @@ constexpr const char *kStringsKo[] = {
     // SetupThenClick2
     "\"Delay Lama.dll\" 파일을 선택해 주세요.",
     // SetupImportButton
-    "클래식 스킨 가져오기...",
+    "클래식 테마 가져오기...",
 
     // InfoCreatedBy
     "만든 사람: Jonathan Taylor",
@@ -58,7 +58,7 @@ constexpr const char *kStringsKo[] = {
     // MenuLoadTheme
     "테마 불러오기...",
     // MenuImportClassic
-    "DLL에서 클래식 스킨 가져오기...",
+    "DLL에서 클래식 테마 가져오기...",
     // MenuOpenFolder
     "테마 폴더 열기",
     // MenuLanguage

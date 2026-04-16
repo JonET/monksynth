@@ -4,7 +4,7 @@ namespace MonkSynth {
 namespace i18n {
 
 enum class StringId : int {
-    SetupNeedsSkin,
+    SetupNeedsTheme,
     SetupImportFromClassic1,
     SetupImportFromClassic2,
     SetupDownloadFrom,

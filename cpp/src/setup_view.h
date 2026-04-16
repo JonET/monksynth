@@ -8,7 +8,7 @@
 namespace MonkSynth {
 
 // First-run setup overlay. Drawn with VSTGUI primitives only (no bitmap assets).
-// Prompts the user to import the classic skin from the original Delay Lama DLL.
+// Prompts the user to import the classic theme from the original Delay Lama DLL.
 class SetupView : public VSTGUI::CViewContainer {
   public:
     SetupView(const VSTGUI::CRect &size);

@@ -9,8 +9,8 @@ namespace i18n {
 // table first; other languages fall back to English for any empty entry.
 // Keep the order matching the StringId enum in i18n.h.
 constexpr const char *kStringsEn[] = {
-    // SetupNeedsSkin
-    "MonkSynth needs a skin to display its GUI.",
+    // SetupNeedsTheme
+    "MonkSynth needs a theme to display its GUI.",
     // SetupImportFromClassic1
     "You can import the classic look from the",
     // SetupImportFromClassic2
@@ -22,7 +22,7 @@ constexpr const char *kStringsEn[] = {
     // SetupThenClick2
     "\"Delay Lama.dll\" file.",
     // SetupImportButton
-    "Import Classic Skin...",
+    "Import Classic Theme...",
 
     // InfoCreatedBy
     "Created by Jonathan Taylor",
@@ -51,7 +51,7 @@ constexpr const char *kStringsEn[] = {
     // MenuLoadTheme
     "Load Theme...",
     // MenuImportClassic
-    "Import Classic Skin from DLL...",
+    "Import Classic Theme from DLL...",
     // MenuOpenFolder
     "Open Themes Folder",
     // MenuLanguage

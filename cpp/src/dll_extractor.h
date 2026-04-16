@@ -11,7 +11,7 @@ struct ExtractionResult {
     std::filesystem::path themeDir;
 };
 
-// Extract classic Delay Lama skin from the original Windows DLL.
+// Extract classic Delay Lama theme from the original Windows DLL.
 // Reads BMP data at known file offsets — works on all platforms.
 // Validates the DLL by file size and CRC32 checksum.
 ExtractionResult extractClassicTheme(const std::filesystem::path &dllPath,

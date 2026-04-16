@@ -11,7 +11,7 @@ InfoButton::InfoButton(const CRect &size) : CView(size) {
 }
 
 void InfoButton::draw(CDrawContext * /*ctx*/) {
-    // Invisible — the skin provides the visual "?" element
+    // Invisible — the theme provides the visual "?" element
 }
 
 CMouseEventResult InfoButton::onMouseMoved(CPoint & /*where*/, const CButtonState & /*buttons*/) {
