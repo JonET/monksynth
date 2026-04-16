@@ -4,6 +4,12 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0-beta.10] - 2026-04-15
+
+### Fixed
+- Hardware pitch wheel coupling in Both / Both (Inverted Vowel) modes no longer bleeds into the in-plugin Pitch Bend slider or DAW automation lane. The wheel is now routed through a hidden `kPitchWheelRaw` parameter so the processor can fan out to pitch bend + vowel without entangling user-facing controls. Dragging the Pitch Bend slider or automating it in the DAW moves pitch bend independently, as expected.
+- Loading presets saved by beta.9 (21 params) into beta.10 (22 params) no longer fails — `setState` handles short reads gracefully and leaves new params at their defaults.
+
 ## [0.2.0-beta.9] - 2026-04-15
 
 ### Added

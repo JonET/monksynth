@@ -110,10 +110,16 @@ tresult PLUGIN_API Processor::getState(IBStream* state) {
 }
 
 tresult PLUGIN_API Processor::setState(IBStream* state) {
+    // The state format is a raw sequence of kNumParams floats. When the
+    // param count grows across a release, older saves are shorter than the
+    // current expectation — treat a short read as "end of stored state"
+    // and leave the remaining params at their defaults.
     for (int i = 0; i < kNumParams; i++) {
         float v;
-        if (state->read(&v, sizeof(v), nullptr) != kResultOk)
-            return kResultFalse;
+        int32 bytesRead = 0;
+        tresult r = state->read(&v, sizeof(v), &bytesRead);
+        if (r != kResultOk || bytesRead < static_cast<int32>(sizeof(v)))
+            break;
         paramValues_[i] = v;
     }
     applyParametersToDsp();
@@ -187,23 +193,47 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
                 case kXYVowel:
                     monk_synth_set_vowel(synth_, fval);
                     break;
-                case kPitchBend: {
+                case kPitchBend:
                     // RangeParameter [-12,12]: normalized 0.5 = 0 semitones.
+                    // Driven by the in-plugin slider, DAW automation, or the
+                    // hardware wheel in Pitch mode. In Both / BothInverted
+                    // modes the wheel is routed to kPitchWheelRaw instead,
+                    // so this case never needs to touch vowel.
                     monk_synth_set_pitch_bend(synth_, (fval - 0.5f) * 24.0f);
-                    // In Both / BothInverted modes the same input ALSO drives
-                    // vowel. Suppressed while the XY pad is tracking, since
-                    // the pad's smoothed vowel writeback (below) would fight
-                    // this write in the same block.
+                    break;
+                case kPitchBendRouting:
+                    // Stored in paramValues_ only; the controller handles
+                    // IMidiMapping re-query. No DSP side-effect from here.
+                    break;
+                case kPitchWheelRaw: {
+                    // Hidden hub — only live in Both / BothInverted modes.
+                    // Fans out the hardware pitch wheel to pitch bend and
+                    // vowel without entangling the user-facing kPitchBend
+                    // slider or its automation lane.
                     auto mode = pitchBendModeFromNormalized(paramValues_[kPitchBendRouting]);
-                    if (!xyNoteActive_ &&
-                        (mode == PitchBendMode::Both ||
-                         mode == PitchBendMode::BothInverted)) {
-                        float vowelVal =
-                            (mode == PitchBendMode::BothInverted) ? (1.0f - fval) : fval;
+                    if (mode != PitchBendMode::Both &&
+                        mode != PitchBendMode::BothInverted)
+                        break;
+
+                    monk_synth_set_pitch_bend(synth_, (fval - 0.5f) * 24.0f);
+                    paramValues_[kPitchBend] = fval;
+                    if (data.outputParameterChanges) {
+                        int32 pbIndex = 0;
+                        auto *pq = data.outputParameterChanges->addParameterData(kPitchBend,
+                                                                                  pbIndex);
+                        if (pq)
+                            pq->addPoint(0, static_cast<ParamValue>(fval), pbIndex);
+                    }
+
+                    // Skip the vowel coupling while the XY pad is tracking,
+                    // since the pad's smoothed vowel writeback (after the
+                    // audio render) would fight this write in the same block.
+                    if (!xyNoteActive_) {
+                        float vowelVal = (mode == PitchBendMode::BothInverted)
+                                             ? (1.0f - fval)
+                                             : fval;
                         monk_synth_set_vowel(synth_, vowelVal);
                         paramValues_[kVowel] = vowelVal;
-                        // Notify the host so the vowel slider tracks and
-                        // automation records the linked move.
                         if (data.outputParameterChanges) {
                             int32 vIndex = 0;
                             auto *vq =
@@ -214,10 +244,6 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
                     }
                     break;
                 }
-                case kPitchBendRouting:
-                    // Stored in paramValues_ only; the controller handles
-                    // IMidiMapping re-query. No DSP side-effect from here.
-                    break;
                 default: break;
             }
         }

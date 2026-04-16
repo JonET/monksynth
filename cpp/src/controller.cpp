@@ -420,15 +420,30 @@ tresult PLUGIN_API Controller::getMidiControllerAssignment(int32 busIndex, int16
     switch (midiControllerNumber) {
         case ControllerNumbers::kPitchBend: {
             // Dynamic routing: kPitchBendRouting decides where the hardware
-            // pitch wheel goes. Classic → Vowel only (Delay Lama compat).
-            // All other modes → PitchBend; the processor secondarily drives
-            // Vowel for Both / BothInverted. When the user changes mode,
-            // setParamNormalized below notifies the host via
-            // restartComponent(kMidiCCAssignmentChanged) so this function
-            // is re-queried.
+            // pitch wheel goes.
+            //   Classic       → kVowel    (Delay Lama compat)
+            //   Pitch         → kPitchBend
+            //   Both / BothInv → kPitchWheelRaw (hidden hub; processor fans
+            //                    out to pitch bend + vowel so the visible
+            //                    kPitchBend slider and DAW automation lane
+            //                    stay independent of wheel-driven vowel)
+            // setParamNormalized(kPitchBendRouting) below notifies the host
+            // via restartComponent(kMidiCCAssignmentChanged) when the mode
+            // changes, so this function is re-queried.
             auto mode = pitchBendModeFromNormalized(
                 static_cast<float>(getParamNormalized(kPitchBendRouting)));
-            id = (mode == PitchBendMode::Classic) ? kVowel : kPitchBend;
+            switch (mode) {
+                case PitchBendMode::Classic:
+                    id = kVowel;
+                    break;
+                case PitchBendMode::Pitch:
+                    id = kPitchBend;
+                    break;
+                case PitchBendMode::Both:
+                case PitchBendMode::BothInverted:
+                    id = kPitchWheelRaw;
+                    break;
+            }
             return kResultTrue;
         }
         case ControllerNumbers::kCtrlModWheel: id = kVibrato; return kResultTrue;
@@ -629,6 +644,14 @@ tresult PLUGIN_API Controller::initialize(FUnknown *context) {
     // correctly.
     parameters.addParameter(STR16("PB Routing"), STR16(""), 3, 0.0,
                             ParameterInfo::kIsHidden, kPitchBendRouting);
+
+    // Hidden routing hub: IMidiMapping sends the hardware pitch wheel here
+    // in Both / BothInverted modes. The processor fans out to PitchBend +
+    // Vowel via outputParameterChanges, keeping the user-facing kPitchBend
+    // slider and DAW automation lane independent of the wheel's vowel
+    // coupling.
+    parameters.addParameter(STR16("PW Raw"), STR16(""), 0, 0.5,
+                            ParameterInfo::kIsHidden, kPitchWheelRaw);
 
     // Output parameter from processor (read-only, for monk animation)
     parameters.addParameter(STR16("Note Active"), STR16(""), 1, 0.0,

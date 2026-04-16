@@ -34,7 +34,11 @@ enum : Steinberg::Vst::ParamID {
     kXYPitchTarget = 18,  // target pitch from XY pad X axis
     kPitchBend = 19,      // ±12 semitones, default 0
     kPitchBendRouting = 20, // 4-step discrete: Classic / Both / BothInv / Pitch — hidden
-    kNumParams = 21,
+    kPitchWheelRaw = 21,  // hidden routing hub: receives hardware CC pitch wheel
+                          // in Both / BothInverted modes so kPitchBend and kVowel
+                          // stay independent from the slider / DAW automation
+                          // perspective. Default 0.5 (center).
+    kNumParams = 22,
 
     // Output parameter: processor -> controller (for monk animation)
     kNoteActive = 200, // 1.0 when any note is sounding, 0.0 when silent
