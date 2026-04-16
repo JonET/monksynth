@@ -83,6 +83,10 @@ target_include_directories(monk_dsp PUBLIC "${DSP_DIR}")
 if(UNIX)
     target_link_libraries(monk_dsp PRIVATE m)
 endif()
+# Match the plugin's arch policy so universal builds link cleanly.
+if(SMTG_MAC)
+    smtg_target_setup_universal_binary(monk_dsp)
+endif()
 
 # --- VST3 Plugin ---
 smtg_add_vst3plugin(MonkSynth

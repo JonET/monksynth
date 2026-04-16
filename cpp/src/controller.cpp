@@ -68,6 +68,9 @@ CView *Controller::createCustomView(UTF8StringPtr name, const UIAttributes & /*a
             view->setMonkBitmap(bmp);
         }
         view->setVowelValue(static_cast<float>(getParamNormalized(kVowel)));
+        // kNoteActive is only pushed on edges, so sync on create in case a
+        // note was already held when the editor opened.
+        view->setNoteActive(getParamNormalized(kNoteActive) > 0.5);
         monkView_ = view;
         return view;
     }

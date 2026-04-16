@@ -1,12 +1,16 @@
 # IDE
 .vs/
 .vscode/
+.claude/
 *.suo
 *.user
 *.sln.docstates
 .idea/
 *.swp
 *~
+
+# Plugin validation logs
+auval.log
 
 # OS
 Thumbs.db
