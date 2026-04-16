@@ -4,6 +4,8 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0-beta.11] - 2026-04-15
+
 ### Fixed
 - Monk animation now reflects the current hold-vs-idle state when the editor is opened while a MIDI note is already held. Previously the monk stayed in idle until the note was released and re-pressed, because `kNoteActive` is only pushed on edges — the controller now syncs from the stored parameter value when the monk view is constructed.
 - Local universal-binary builds no longer fail to link x86_64 because of the `monk_dsp` static library defaulting to the host arch. `smtg_target_setup_universal_binary` is now applied so it follows the same arch policy as the plugin target. CI builds were unaffected (they set `CMAKE_OSX_ARCHITECTURES` globally).
