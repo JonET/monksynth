@@ -4,6 +4,8 @@ All notable changes to MonkSynth will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0-beta.9] - 2026-04-15
+
 ### Added
 - Vowel and Pitch sliders inside the plugin window are now real parameter controls — FL Studio users can right-click them to create automation clips or link to a controller. Previously they were read-only indicators with no control-tag, so host right-click menus had nothing to grab.
 - **Pitch Bend** submenu gains two new routing modes: `Both (Pitch + Vowel)` and `Both (Pitch + Inverted Vowel)`. In Both modes, moving the hardware pitch wheel drives pitch bend and vowel simultaneously (same direction or opposite). Classic (0.0) and Pitch (1.0) still map to the same saved-state values, so existing sessions and presets load unchanged.
