@@ -96,6 +96,14 @@ smtg_add_vst3plugin(MonkSynth
     src/processor.cpp
     src/controller.h
     src/controller.cpp
+    src/arc_knob.h
+    src/arc_knob.cpp
+    src/section_panel.h
+    src/section_panel.cpp
+    src/adsr_curve.h
+    src/adsr_curve.cpp
+    src/value_readout.h
+    src/value_readout.cpp
     src/monk_view.h
     src/monk_view.cpp
     src/xy_pad.h

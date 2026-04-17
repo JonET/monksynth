@@ -1,5 +1,9 @@
 #include "controller.h"
 #include "pluginterfaces/base/ibstream.h"
+#include "adsr_curve.h"
+#include "arc_knob.h"
+#include "section_panel.h"
+#include "value_readout.h"
 #include "dll_extractor.h"
 #include "i18n.h"
 #include "info_button.h"
@@ -17,6 +21,7 @@
 #include "vstgui/lib/controls/coptionmenu.h"
 #include "vstgui/lib/cvstguitimer.h"
 #include "vstgui/lib/platform/platformfactory.h"
+#include "vstgui/uidescription/uiattributes.h"
 #include "vstgui/uidescription/uidescription.h"
 
 #include <cmath>
@@ -27,6 +32,29 @@ using namespace Steinberg::Vst;
 using namespace VSTGUI;
 
 namespace MonkSynth {
+
+// Quadratic taper: toPlain(n) = n² * max, toNormalized(p) = √(p/max).
+// Used for ADSR time parameters so the knob has fine resolution at short
+// times (where users actually live) while still reaching the full 5s at
+// norm=1. Default of 0 stays at 0 — preserves the original Delay Lama
+// "no envelope" behavior out of the box.
+class SquaredRangeParameter : public Steinberg::Vst::RangeParameter {
+  public:
+    using RangeParameter::RangeParameter;
+
+    Steinberg::Vst::ParamValue toPlain(Steinberg::Vst::ParamValue n) const override {
+        return n * n * (maxPlain - minPlain) + minPlain;
+    }
+
+    Steinberg::Vst::ParamValue toNormalized(Steinberg::Vst::ParamValue p) const override {
+        double frac = (p - minPlain) / (maxPlain - minPlain);
+        if (frac <= 0.0)
+            return 0.0;
+        if (frac >= 1.0)
+            return 1.0;
+        return std::sqrt(frac);
+    }
+};
 
 // VSTGUI file selectors return UTF-8 strings.  On Windows, the fs::path(const
 // char*) constructor interprets narrow strings using the active ANSI code page,
@@ -54,13 +82,14 @@ static void applyLanguagePreference(const std::string &pref) {
 
 IPlugView *PLUGIN_API Controller::createView(const char *name) {
     if (FIDStringsEqual(name, ViewType::kEditor)) {
-        return new ThemedVST3Editor(this, "view", "editor.uidesc", &themeManager_);
+        const char *tmpl = themeManager_.advancedMode() ? "view_advanced" : "view";
+        return new ThemedVST3Editor(this, tmpl, "editor.uidesc", &themeManager_);
     }
     return nullptr;
 }
 
-CView *Controller::createCustomView(UTF8StringPtr name, const UIAttributes & /*attributes*/,
-                                    const IUIDescription *description, VST3Editor * /*editor*/) {
+CView *Controller::createCustomView(UTF8StringPtr name, const UIAttributes &attributes,
+                                    const IUIDescription *description, VST3Editor *editor) {
     if (UTF8StringView(name) == "MonkAnimation") {
         auto *view = new MonkView(CRect(0, 0, 311, 311));
         CBitmap *bmp = description->getBitmap("monk_strip");
@@ -76,6 +105,40 @@ CView *Controller::createCustomView(UTF8StringPtr name, const UIAttributes & /*a
     }
     if (UTF8StringView(name) == "XYPad") {
         return new XYPadView(CRect(0, 0, 100, 100), nullptr, this);
+    }
+    if (UTF8StringView(name) == "AdsrCurve") {
+        auto *curve = new AdsrCurve(CRect(0, 0, 100, 60));
+        curve->setAttack(static_cast<float>(getParamNormalized(kAttack)));
+        curve->setDecay(static_cast<float>(getParamNormalized(kDecay)));
+        curve->setSustain(static_cast<float>(getParamNormalized(kSustain)));
+        curve->setRelease(static_cast<float>(getParamNormalized(kRelease)));
+        adsrCurve_ = curve;
+        return curve;
+    }
+    if (UTF8StringView(name) == "SectionPanel") {
+        auto *panel = new SectionPanel(CRect(0, 0, 100, 100));
+        if (auto *titleStr = attributes.getAttributeValue("section-title")) {
+            panel->setTitle(*titleStr);
+        }
+        return panel;
+    }
+    if (UTF8StringView(name) == "ArcKnob") {
+        int32_t tag = -1;
+        if (auto *tagStr = attributes.getAttributeValue("control-tag")) {
+            tag = description->getTagForName(tagStr->c_str());
+            if (tag == -1)
+                tag = static_cast<int32_t>(strtol(tagStr->c_str(), nullptr, 10));
+        }
+        return new ArcKnob(CRect(0, 0, 50, 50), editor, tag);
+    }
+    if (UTF8StringView(name) == "AdsrValueReadout") {
+        int32_t tag = -1;
+        if (auto *tagStr = attributes.getAttributeValue("control-tag")) {
+            tag = description->getTagForName(tagStr->c_str());
+            if (tag == -1)
+                tag = static_cast<int32_t>(strtol(tagStr->c_str(), nullptr, 10));
+        }
+        return new AdsrValueReadout(CRect(0, 0, 60, 12), editor, tag);
     }
     if (UTF8StringView(name) == "InfoButton") {
         auto *btn = new InfoButton(CRect(0, 0, 25, 25));
@@ -170,6 +233,7 @@ void Controller::showInfoOverlay(VST3Editor *editor) {
 
 void Controller::willClose(VST3Editor * /*editor*/) {
     monkView_ = nullptr;
+    adsrCurve_ = nullptr;
     infoButton_ = nullptr;
     currentEditor_ = nullptr;
 }
@@ -308,6 +372,38 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
         });
     });
     menu->addEntry(importItem);
+
+    menu->addSeparator();
+
+    // "Show Advanced Parameters" — checkable toggle that swaps between the
+    // "view" and "view_advanced" uidesc templates. The wider template exposes
+    // ADSR, unison, aspiration, etc. State persists via ThemeManager.
+    CCommandMenuItem::Desc advDesc(i18n::str(i18n::StringId::MenuAdvanced));
+    if (themeManager_.advancedMode())
+        advDesc.flags |= CMenuItem::kChecked;
+    auto *advItem = new CCommandMenuItem(std::move(advDesc));
+    advItem->setActions([this, themedEditor](CCommandMenuItem *) {
+        bool next = !themeManager_.advancedMode();
+        themeManager_.setAdvancedMode(next);
+        // Deferred so the swap happens after the context-menu tracking loop
+        // unwinds (matches the file-dialog pattern above).
+        Call::later([themedEditor, next]() {
+            themedEditor->exchangeView(next ? "view_advanced" : "view");
+            // FL Studio interprets resizeView's ViewRect as physical pixels
+            // (not logical), so at 125% Windows DPI a logical 360 arrives
+            // as a 360-physical-pixel window — visually smaller than
+            // intended. Multiply by the editor's current content scale
+            // factor so the physical pixels match the desired logical
+            // size. At 100% scale this is a no-op. Defer to a second loop
+            // turn so it lands after recreateView's own requestResize.
+            Call::later([themedEditor, next]() {
+                double scale = themedEditor->contentScaleFactor();
+                CPoint sz((next ? 760.0 : 360.0) * scale, 510.0 * scale);
+                themedEditor->requestResize(sz);
+            });
+        });
+    });
+    menu->addEntry(advItem);
 
     // ---- Language submenu ----
     menu->addSeparator();
@@ -537,6 +633,18 @@ tresult PLUGIN_API Controller::setParamNormalized(ParamID tag, ParamValue value)
         if (tag == kVowel) {
             if (monkView_)
                 monkView_->setVowelValue(static_cast<float>(value));
+        } else if (tag == kAttack) {
+            if (adsrCurve_)
+                adsrCurve_->setAttack(static_cast<float>(value));
+        } else if (tag == kDecay) {
+            if (adsrCurve_)
+                adsrCurve_->setDecay(static_cast<float>(value));
+        } else if (tag == kSustain) {
+            if (adsrCurve_)
+                adsrCurve_->setSustain(static_cast<float>(value));
+        } else if (tag == kRelease) {
+            if (adsrCurve_)
+                adsrCurve_->setRelease(static_cast<float>(value));
         } else if (tag == kNoteActive) {
             // Drive the monk's hold-vs-idle state from the processor's
             // combined (MIDI || XY pad) signal only. Reacting to kXYNoteOn
@@ -591,22 +699,24 @@ tresult PLUGIN_API Controller::initialize(FUnknown *context) {
         STR16("Breath"), STR16(""), 0, 0.5,
         ParameterInfo::kCanAutomate, kAspiration);
 
-    // ADSR — RangeParameter so the host displays actual seconds
+    // ADSR — quadratic taper on A/D/R so norm=0 still means 0s (keeping
+    // the original Delay Lama "no envelope by default" behavior) but the
+    // knob travel has much finer resolution at short times.
     parameters.addParameter(
-        new RangeParameter(STR16("Attack"), kAttack, STR16("s"),
-                           0.0, 5.0, 0.0, 0, ParameterInfo::kCanAutomate));
+        new SquaredRangeParameter(STR16("Attack"), kAttack, STR16("s"),
+                                  0.0, 3.0, 0.0, 0, ParameterInfo::kCanAutomate));
 
     parameters.addParameter(
-        new RangeParameter(STR16("Decay"), kDecay, STR16("s"),
-                           0.0, 5.0, 0.0, 0, ParameterInfo::kCanAutomate));
+        new SquaredRangeParameter(STR16("Decay"), kDecay, STR16("s"),
+                                  0.0, 3.0, 0.0, 0, ParameterInfo::kCanAutomate));
 
     parameters.addParameter(
         new RangeParameter(STR16("Sustain"), kSustain, STR16(""),
                            0.0, 1.0, 1.0, 0, ParameterInfo::kCanAutomate));
 
     parameters.addParameter(
-        new RangeParameter(STR16("Release"), kRelease, STR16("s"),
-                           0.0, 5.0, 0.0, 0, ParameterInfo::kCanAutomate));
+        new SquaredRangeParameter(STR16("Release"), kRelease, STR16("s"),
+                                  0.0, 3.0, 0.0, 0, ParameterInfo::kCanAutomate));
 
     parameters.addParameter(
         new RangeParameter(STR16("Unison"), kUnison, STR16(""),

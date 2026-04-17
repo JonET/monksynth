@@ -75,6 +75,8 @@ constexpr const char *kStringsKo[] = {
     "둘 다 (피치 + 모음)",
     // MenuPitchBendBothInverted
     "둘 다 (피치 + 반전 모음)",
+    // MenuAdvanced
+    "고급 매개변수 표시",
     // FileSelectThemeJson
     "테마 폴더에서 theme.json 선택",
     // FileSelectDll

@@ -117,6 +117,9 @@ void ThemeManager::loadConfig() {
     std::string lang = jsonGetString(json, "language");
     if (!lang.empty())
         languagePref_ = lang;
+
+    std::string adv = jsonGetString(json, "advanced");
+    advancedMode_ = (adv == "true");
 }
 
 void ThemeManager::saveConfig() const {
@@ -137,7 +140,8 @@ void ThemeManager::saveConfig() const {
     } else {
         f << "  \"themePath\": \"\",\n";
     }
-    f << "  \"language\": \"" << languagePref_ << "\"\n";
+    f << "  \"language\": \"" << languagePref_ << "\",\n";
+    f << "  \"advanced\": \"" << (advancedMode_ ? "true" : "false") << "\"\n";
     f << "}\n";
 }
 
@@ -155,6 +159,11 @@ void ThemeManager::resetTheme() {
 
 void ThemeManager::setLanguagePref(const std::string &pref) {
     languagePref_ = pref;
+    saveConfig();
+}
+
+void ThemeManager::setAdvancedMode(bool v) {
+    advancedMode_ = v;
     saveConfig();
 }
 

@@ -51,10 +51,10 @@ void Processor::applyParametersToDsp() {
     monk_synth_set_vibrato(synth_, paramValues_[kVibrato]);
     monk_synth_set_vibrato_rate(synth_, paramValues_[kVibratoRate]);
     monk_synth_set_aspiration(synth_, paramValues_[kAspiration]);
-    monk_synth_set_attack(synth_, paramValues_[kAttack] * 5.0f);
-    monk_synth_set_decay(synth_, paramValues_[kDecay] * 5.0f);
+    monk_synth_set_attack(synth_, paramValues_[kAttack] * paramValues_[kAttack] * 3.0f);
+    monk_synth_set_decay(synth_, paramValues_[kDecay] * paramValues_[kDecay] * 3.0f);
     monk_synth_set_sustain(synth_, paramValues_[kSustain]);
-    monk_synth_set_release(synth_, paramValues_[kRelease] * 5.0f);
+    monk_synth_set_release(synth_, paramValues_[kRelease] * paramValues_[kRelease] * 3.0f);
     monk_synth_set_unison(synth_, (int)(paramValues_[kUnison] * 9.0f + 1.5f));
     monk_synth_set_unison_detune(synth_, paramValues_[kUnisonDetune] * 50.0f);
     monk_synth_set_delay_rate(synth_, paramValues_[kDelayRate]);
@@ -158,10 +158,10 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
                 case kVibrato:    monk_synth_set_vibrato(synth_, fval); break;
                 case kVibratoRate: monk_synth_set_vibrato_rate(synth_, fval); break;
                 case kAspiration:  monk_synth_set_aspiration(synth_, fval); break;
-                case kAttack:      monk_synth_set_attack(synth_, fval * 5.0f); break;
-                case kDecay:       monk_synth_set_decay(synth_, fval * 5.0f); break;
+                case kAttack:      monk_synth_set_attack(synth_, fval * fval * 3.0f); break;
+                case kDecay:       monk_synth_set_decay(synth_, fval * fval * 3.0f); break;
                 case kSustain:     monk_synth_set_sustain(synth_, fval); break;
-                case kRelease:      monk_synth_set_release(synth_, fval * 5.0f); break;
+                case kRelease:      monk_synth_set_release(synth_, fval * fval * 3.0f); break;
                 case kUnison:       monk_synth_set_unison(synth_, (int)(fval * 9.0f + 1.5f)); break;
                 case kUnisonDetune: monk_synth_set_unison_detune(synth_, fval * 50.0f); break;
                 case kDelayRate:    monk_synth_set_delay_rate(synth_, fval); break;

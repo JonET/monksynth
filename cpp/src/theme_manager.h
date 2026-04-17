@@ -25,6 +25,11 @@ class ThemeManager {
     const std::string &languagePref() const { return languagePref_; }
     void setLanguagePref(const std::string &pref);
 
+    // "Show Advanced Parameters" toggle from the right-click menu. Stored in
+    // config.json so it survives editor close/reopen.
+    bool advancedMode() const { return advancedMode_; }
+    void setAdvancedMode(bool v);
+
     // Returns absolute path to a themed bitmap file, or nullopt if not present.
     // |bitmapName| is the UIDESC logical name (e.g. "background", "monk_strip").
     std::optional<std::filesystem::path> resolveThemeBitmap(const std::string &bitmapName) const;
@@ -51,6 +56,7 @@ class ThemeManager {
 
     std::filesystem::path themePath_;
     std::string languagePref_;
+    bool advancedMode_ = false;
 };
 
 } // namespace MonkSynth

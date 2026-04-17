@@ -13,6 +13,7 @@
 namespace MonkSynth {
 
 class Controller;
+class AdsrCurve;
 class InfoButton;
 class MonkView;
 
@@ -25,6 +26,12 @@ class ThemedVST3Editor : public VSTGUI::VST3Editor {
         : VST3Editor(controller, templateName, xmlFile), themeManager_(themeManager) {}
 
     void recreateUI() { requestRecreateView(); }
+
+    // The current host-reported content scale (1.0 at 100% Windows DPI,
+    // 1.25 at 125%, etc.). Exposed so the advanced-mode toggle can send
+    // physical pixels to hosts (like FL Studio) that don't apply DPI
+    // scaling themselves in response to resizeView.
+    double contentScaleFactor() const { return getAbsScaleFactor(); }
 
     bool PLUGIN_API open(void *parent, const VSTGUI::PlatformType &type) override {
         // Swap placeholder bitmaps for real theme assets before the base class
@@ -120,6 +127,7 @@ class Controller : public Steinberg::Vst::EditController,
     void tickPitchBendSpring();
 
     MonkView *monkView_ = nullptr;
+    AdsrCurve *adsrCurve_ = nullptr;
     InfoButton *infoButton_ = nullptr;
     VST3Editor *currentEditor_ = nullptr;
     ThemeManager themeManager_;

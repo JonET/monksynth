@@ -75,6 +75,8 @@ constexpr const char *kStringsJa[] = {
     "両方（ピッチ＋母音）",
     // MenuPitchBendBothInverted
     "両方（ピッチ＋母音反転）",
+    // MenuAdvanced
+    "詳細パラメータを表示",
     // FileSelectThemeJson
     "テーマフォルダ内の theme.json を選択",
     // FileSelectDll
