@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   build:
@@ -169,6 +170,37 @@ jobs:
           echo "path=$VST3" >> "$GITHUB_OUTPUT"
           echo "Found VST3 at: $VST3"
 
+      - name: Upload unsigned VST3 bundle (Windows)
+        if: runner.os == 'Windows'
+        id: upload_vst3_unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: vst3-unsigned-windows
+          path: ${{ steps.find_vst3.outputs.path }}
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Sign VST3 with SignPath
+        if: runner.os == 'Windows'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: '998d67e2-a2e5-4daa-abae-4093c3c45fa7'
+          project-slug: 'monksynth'
+          signing-policy-slug: 'test-signing'
+          artifact-configuration-slug: 'initial'
+          github-artifact-id: ${{ steps.upload_vst3_unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: ${{ runner.temp }}/signed-vst3
+
+      - name: Replace VST3 binary with signed version
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          BUNDLE_PATH="${{ steps.find_vst3.outputs.path }}"
+          cp "$RUNNER_TEMP/signed-vst3/Contents/x86_64-win/MonkSynth.vst3" \
+             "$BUNDLE_PATH/Contents/x86_64-win/MonkSynth.vst3"
+
       - name: Find AU bundle
         if: runner.os == 'macOS'
         id: find_au
@@ -249,6 +281,36 @@ jobs:
           cp -r "${{ steps.find_vst3.outputs.path }}" installer/windows/staging/MonkSynth.vst3
           cp presets/*.vstpreset installer/windows/staging/presets/
           iscc //DMyAppVersion="${{ steps.version.outputs.number }}" installer/windows/MonkSynth.iss
+
+      - name: Upload unsigned Windows installer
+        if: runner.os == 'Windows'
+        id: upload_installer_unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-unsigned-windows
+          path: installer/windows/Output/*.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Sign Windows installer with SignPath
+        if: runner.os == 'Windows'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: '998d67e2-a2e5-4daa-abae-4093c3c45fa7'
+          project-slug: 'monksynth'
+          signing-policy-slug: 'test-signing'
+          artifact-configuration-slug: 'windows-installer'
+          github-artifact-id: ${{ steps.upload_installer_unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: ${{ runner.temp }}/signed-installer
+
+      - name: Replace installer with signed version
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          rm -f installer/windows/Output/*.exe
+          cp "$RUNNER_TEMP"/signed-installer/*.exe installer/windows/Output/
 
       - name: Upload Windows installer
         if: runner.os == 'Windows'
