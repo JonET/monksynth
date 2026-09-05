@@ -89,8 +89,8 @@ class Controller : public Steinberg::Vst::EditController,
     Steinberg::tresult PLUGIN_API setParamNormalized(Steinberg::Vst::ParamID tag,
                                                      Steinberg::Vst::ParamValue value) override;
     Steinberg::tresult PLUGIN_API setComponentState(Steinberg::IBStream *state) override;
-    Steinberg::tresult PLUGIN_API beginEdit(Steinberg::Vst::ParamID tag) override;
-    Steinberg::tresult PLUGIN_API endEdit(Steinberg::Vst::ParamID tag) override;
+    Steinberg::tresult beginEdit(Steinberg::Vst::ParamID tag) override;
+    Steinberg::tresult endEdit(Steinberg::Vst::ParamID tag) override;
 
     // VST3EditorDelegate overrides
     VSTGUI::CView *createCustomView(UTF8StringPtr name, const VSTGUI::UIAttributes &attributes,
