@@ -1,6 +1,7 @@
 #pragma once
 
 #include "theme_manager.h"
+#include "wine_gui.h"
 
 #include "pluginterfaces/vst/ivstmidicontrollers.h"
 #include "public.sdk/source/vst/vsteditcontroller.h"
@@ -35,6 +36,7 @@ class ThemedVST3Editor : public VSTGUI::VST3Editor {
     void recreateUI() { requestRecreateView(); }
 
     bool PLUGIN_API open(void *parent, const VSTGUI::PlatformType &type) override {
+        monksynthForceWineSafeGui();
         // Swap placeholder bitmaps for real theme assets before the base class
         // creates views.  CAnimKnob::setBackground() recalculates numSubPixmaps
         // from the bitmap height, so the bitmaps must already be full-size.

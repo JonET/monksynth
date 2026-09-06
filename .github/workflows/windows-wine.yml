@@ -1,0 +1,67 @@
+name: Windows Wine-safe Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  windows:
+    name: Bundle MonkSynth VST3 (unsigned, Wine-safe GUI)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache VST3 SDK
+        uses: actions/cache@v5
+        with:
+          path: cpp/build/_deps
+          key: vst3sdk-v3.8.0_build_66-Windows-${{ hashFiles('cpp/patches/*.patch') }}
+
+      - name: Extract version label
+        id: version
+        shell: bash
+        run: |
+          echo "label=wine" >> "$GITHUB_OUTPUT"
+          echo "number=0.2.0" >> "$GITHUB_OUTPUT"
+          echo "semver=0.2.0" >> "$GITHUB_OUTPUT"
+
+      - name: Configure
+        working-directory: cpp
+        shell: bash
+        run: |
+          cmake -B build \
+            -DMONKSYNTH_VERSION_LABEL="${{ steps.version.outputs.label }}" \
+            -DMONKSYNTH_VERSION_NUMBER="${{ steps.version.outputs.semver }}"
+
+      - name: Build VST3
+        working-directory: cpp
+        run: cmake --build build --config Release --target MonkSynth
+
+      - name: Find VST3 bundle
+        id: find_vst3
+        shell: bash
+        run: |
+          VST3=$(find cpp/build -name "MonkSynth.vst3" -type d | head -1)
+          echo "path=$VST3" >> "$GITHUB_OUTPUT"
+          echo "Found VST3 at: $VST3"
+          find "$VST3" -print
+
+      - name: Package VST3
+        shell: bash
+        run: |
+          cd "$(dirname "${{ steps.find_vst3.outputs.path }}")"
+          7z a -tzip "$GITHUB_WORKSPACE/MonkSynth-VST3-Windows-Wine.zip" "MonkSynth.vst3"
+
+      - name: Upload Windows VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: MonkSynth-VST3-Windows-Wine
+          path: MonkSynth-VST3-Windows-Wine.zip
+          if-no-files-found: error
+          retention-days: 30
