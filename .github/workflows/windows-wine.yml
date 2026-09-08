@@ -39,6 +39,23 @@ jobs:
             -DMONKSYNTH_VERSION_LABEL="${{ steps.version.outputs.label }}" \
             -DMONKSYNTH_VERSION_NUMBER="${{ steps.version.outputs.semver }}"
 
+      - name: Verify VSTGUI GDI paint patch applied
+        shell: bash
+        run: |
+          WIN32_DIR=$(find cpp/build/_deps -type d -path "*/vstgui/lib/platform/win32" | head -1)
+          echo "VSTGUI win32 dir: $WIN32_DIR"
+          for f in win32factory.cpp win32factory.h win32frame.cpp; do
+            if grep -q MONKSYNTH_GDI "$WIN32_DIR/$f"; then
+              echo "OK   $f is patched"
+            else
+              echo "FAIL $f is missing the MONKSYNTH_GDI patch"
+              exit 1
+            fi
+          done
+          grep -n "DirectComposition::Factory::create" "$WIN32_DIR/win32factory.cpp" \
+            && { echo "FAIL DirectComposition factory is still created"; exit 1; } \
+            || echo "OK   DirectComposition factory creation removed"
+
       - name: Build VST3
         working-directory: cpp
         run: cmake --build build --config Release --target MonkSynth

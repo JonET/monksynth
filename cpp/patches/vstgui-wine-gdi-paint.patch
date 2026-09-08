@@ -1,0 +1,161 @@
+diff --git a/vstgui4/vstgui/lib/platform/win32/win32factory.cpp b/vstgui4/vstgui/lib/platform/win32/win32factory.cpp
+index 62f5e5f..ac12915 100644
+--- a/vstgui4/vstgui/lib/platform/win32/win32factory.cpp
++++ b/vstgui4/vstgui/lib/platform/win32/win32factory.cpp
+@@ -53,6 +53,12 @@ struct Win32Factory::Impl
+ 	COM::Ptr<IDWriteFactory> directWriteFactory;
+ 	COM::Ptr<IWICImagingFactory> wicImagingFactory;
+ 
++	// MONKSYNTH_GDI: shared DC render target used by createDCGraphicsDeviceContext.
++	COM::Ptr<ID2D1DCRenderTarget> dcRenderTarget;
++	PlatformGraphicsDeviceContextPtr dcDeviceContext;
++	HDC boundDC {nullptr};
++	RECT boundRect {};
++
+ 	std::unique_ptr<DirectComposition::Factory> directCompositionFactory;
+ 	D2DGraphicsDeviceFactory graphicsDeviceFactory;
+ 	PlatformTaskExecutorPtr taskExecutor;
+@@ -115,7 +121,10 @@ Win32Factory::Win32Factory (HINSTANCE instance)
+ 	CoCreateInstance (VSTGUI_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+ 					  IID_IWICImagingFactory, (void**)impl->wicImagingFactory.adoptPtr ());
+ 
+-	impl->directCompositionFactory = DirectComposition::Factory::create (impl->d2dFactory.get ());
++	// MONKSYNTH_GDI: never create the DirectComposition factory. Its D3D11
++	// composition swapchain does not present into a plugin child window under
++	// Wine, which leaves the editor black. Win32Frame falls back to
++	// createDCGraphicsDeviceContext () instead.
+ 	D2DBitmapCache::init ();
+ 	if (impl->directCompositionFactory)
+ 	{
+@@ -248,6 +257,72 @@ PlatformGraphicsDeviceContextPtr
+ 		TransformMatrix {});
+ }
+ 
++//-----------------------------------------------------------------------------
++// MONKSYNTH_GDI: paint through a Direct2D DC render target. Wine renders that
++// into an offscreen GDI-compatible surface and BitBlts it onto the bound HDC,
++// so no DXGI swapchain is created for the editor's child window. Binding
++// recreates the target bitmap, so the caller must redraw the whole frame
++// whenever the HDC or client rect changes.
++PlatformGraphicsDeviceContextPtr
++	Win32Factory::createDCGraphicsDeviceContext (void* hdc, const CRect& size) const noexcept
++{
++	auto paintDC = reinterpret_cast<HDC> (hdc);
++	if (!paintDC)
++		return nullptr;
++
++	if (!impl->dcRenderTarget)
++	{
++		// Wine only accepts B8G8R8A8_UNORM with premultiplied or ignored alpha
++		// for DC render targets, so the format cannot be left as UNKNOWN here.
++		auto properties = D2D1::RenderTargetProperties (
++			D2D1_RENDER_TARGET_TYPE_SOFTWARE,
++			D2D1::PixelFormat (DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 96.f,
++			96.f, D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE);
++		if (FAILED (getD2DFactory ()->CreateDCRenderTarget (&properties,
++														   impl->dcRenderTarget.adoptPtr ())))
++		{
++			impl->dcRenderTarget.reset ();
++			return nullptr;
++		}
++		impl->boundDC = nullptr;
++		SetRectEmpty (&impl->boundRect);
++	}
++
++	RECT bindRect {static_cast<LONG> (size.left), static_cast<LONG> (size.top),
++				   static_cast<LONG> (size.right), static_cast<LONG> (size.bottom)};
++	if (impl->boundDC != paintDC || !EqualRect (&impl->boundRect, &bindRect))
++	{
++		if (FAILED (impl->dcRenderTarget->BindDC (paintDC, &bindRect)))
++			return nullptr;
++		impl->dcRenderTarget->SetDpi (96, 96);
++		impl->boundDC = paintDC;
++		impl->boundRect = bindRect;
++	}
++
++	if (impl->dcDeviceContext)
++		return impl->dcDeviceContext;
++
++	COM::Ptr<ID2D1DeviceContext> deviceContext;
++	if (FAILED (impl->dcRenderTarget->QueryInterface (
++			__uuidof (ID2D1DeviceContext), reinterpret_cast<void**> (deviceContext.adoptPtr ()))))
++		return nullptr;
++
++	ID2D1Device* d2ddevice {};
++	deviceContext->GetDevice (&d2ddevice);
++	auto device = impl->graphicsDeviceFactory.find (d2ddevice);
++	if (!device)
++	{
++		impl->graphicsDeviceFactory.addDevice (std::make_shared<D2DGraphicsDevice> (d2ddevice));
++		device = impl->graphicsDeviceFactory.find (d2ddevice);
++		vstgui_assert (device);
++	}
++
++	impl->dcDeviceContext = std::make_shared<D2DGraphicsDeviceContext> (
++		*std::static_pointer_cast<D2DGraphicsDevice> (device).get (), deviceContext.get (),
++		TransformMatrix {});
++	return impl->dcDeviceContext;
++}
++
+ //-----------------------------------------------------------------------------
+ void Win32Factory::disableDirectComposition () const noexcept
+ {
+diff --git a/vstgui4/vstgui/lib/platform/win32/win32factory.h b/vstgui4/vstgui/lib/platform/win32/win32factory.h
+index 3b8666f..0055b45 100644
+--- a/vstgui4/vstgui/lib/platform/win32/win32factory.h
++++ b/vstgui4/vstgui/lib/platform/win32/win32factory.h
+@@ -43,6 +43,10 @@ public:
+ 
+ 	DirectComposition::Factory* getDirectCompositionFactory () const noexcept;
+ 	PlatformGraphicsDeviceContextPtr createGraphicsDeviceContext (void* hwnd) const noexcept;
++	/** MONKSYNTH_GDI: create a device context that presents by blitting to a GDI
++	 * device context instead of via a DXGI swapchain. */
++	PlatformGraphicsDeviceContextPtr createDCGraphicsDeviceContext (
++		void* hdc, const CRect& size) const noexcept;
+ 
+ 	/** disable the use of direct composition. must be called before anything else or the behaviour
+ 	 * is undefined. */
+diff --git a/vstgui4/vstgui/lib/platform/win32/win32frame.cpp b/vstgui4/vstgui/lib/platform/win32/win32frame.cpp
+index 7ff52ef..d1862c4 100644
+--- a/vstgui4/vstgui/lib/platform/win32/win32frame.cpp
++++ b/vstgui4/vstgui/lib/platform/win32/win32frame.cpp
+@@ -724,26 +724,24 @@ void Win32Frame::paint (HWND hwnd)
+ 		}
+ 		else
+ 		{
+-			if (!legacyDrawDevice)
+-				legacyDrawDevice =
+-					getPlatformFactory ().asWin32Factory ()->createGraphicsDeviceContext (hwnd);
++			// MONKSYNTH_GDI: bind a Direct2D DC render target to the HDC from
++			// BeginPaint. Binding discards the previous target bitmap, so the
++			// whole frame is redrawn rather than just the update region; GDI
++			// still clips the resulting BitBlt to the invalid area.
++			legacyDrawDevice =
++				getPlatformFactory ().asWin32Factory ()->createDCGraphicsDeviceContext (
++					hdc, frameSize);
+ 			if (legacyDrawDevice)
+ 			{
+-				GetRgnBox (rgn, &ps.rcPaint);
+-				CRect updateRect ((CCoord)ps.rcPaint.left, (CCoord)ps.rcPaint.top,
+-								  (CCoord)ps.rcPaint.right, (CCoord)ps.rcPaint.bottom);
+-
+-				legacyDrawDevice->setClipRect (updateRect);
++				legacyDrawDevice->setClipRect (frameSize);
+ 
+ 				legacyDrawDevice->beginDraw ();
+ 
+-				iterateRegion (rgn, [&] (const auto& rect) {
+-					legacyDrawDevice->saveGlobalState ();
+-					legacyDrawDevice->setClipRect (updateRect);
+-					legacyDrawDevice->clearRect (rect);
+-					getFrame ()->platformDrawRects (legacyDrawDevice, 1, {1, rect});
+-					legacyDrawDevice->restoreGlobalState ();
+-				});
++				legacyDrawDevice->saveGlobalState ();
++				legacyDrawDevice->setClipRect (frameSize);
++				legacyDrawDevice->clearRect (frameSize);
++				getFrame ()->platformDrawRects (legacyDrawDevice, 1, {1, frameSize});
++				legacyDrawDevice->restoreGlobalState ();
+ 
+ 				legacyDrawDevice->endDraw ();
+ 			}

@@ -1,8 +1,8 @@
 # Cross-platform patch script for FetchContent PATCH_COMMAND.
 # Applies every *.patch in this directory if not already applied.
-# A failed apply is a warning, not a hard error: the Linux static-link
-# patch is guarded by MONKSYNTH_STATIC_LINUX_DEPS, and the Wine DComp
-# skip is also enforced from monksynthForceWineSafeGui() at editor open.
+# A failed apply is a warning, not a hard error, because the Linux static-link
+# patch is guarded by MONKSYNTH_STATIC_LINUX_DEPS. The Windows build verifies
+# separately that vstgui-wine-gdi-paint.patch actually landed.
 
 get_filename_component(PATCH_DIR "${CMAKE_CURRENT_LIST_DIR}" ABSOLUTE)
 file(GLOB PATCH_FILES "${PATCH_DIR}/*.patch")

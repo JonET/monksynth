@@ -36,7 +36,7 @@ class ThemedVST3Editor : public VSTGUI::VST3Editor {
     void recreateUI() { requestRecreateView(); }
 
     bool PLUGIN_API open(void *parent, const VSTGUI::PlatformType &type) override {
-        monksynthForceWineSafeGui();
+        monksynthForceWineSafeGui("editor-open");
         // Swap placeholder bitmaps for real theme assets before the base class
         // creates views.  CAnimKnob::setBackground() recalculates numSubPixmaps
         // from the bitmap height, so the bitmaps must already be full-size.
