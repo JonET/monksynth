@@ -115,7 +115,7 @@ Community themes are collected in [`themes/`](themes/) in this repo. Themes name
 A theme folder contains a `theme.json` manifest and any combination of these PNG files (missing ones fall back to 1x1 placeholders):
 
 - `background.png` — main background (360x510)
-- `monk-strip.png` — animation sprite sheet (5x6 grid, 311x311 frames)
+- `monk-strip.png` — animation sprite sheet (5x6 grid, 314x311 frames)
 - `knob-left.png` / `knob-right.png` — rotary knob filmstrips (50x3000, 60 frames)
 - `fader-down-large.png` / `fader-down-sm.png` / `fader-right-sm.png` — fader handles
 - `info.png` — info overlay (253x275)
