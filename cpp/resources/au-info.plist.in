@@ -15,14 +15,16 @@
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.2.0</string>
+	<string>@MONKSYNTH_VERSION@</string>
 	<key>CFBundleVersion</key>
-	<string>0.2.0</string>
+	<string>@MONKSYNTH_VERSION@</string>
 	<key>AudioComponents</key>
 	<array>
 		<dict>
+			<!-- Hosts expect "Manufacturer: Product". Ableton Live silently skips
+			     components without the prefix; Logic uses it for grouping. -->
 			<key>name</key>
-			<string>MonkSynth</string>
+			<string>MonkSynth: MonkSynth</string>
 			<key>description</key>
 			<string>MonkSynth Vocal Synthesizer</string>
 			<key>manufacturer</key>
@@ -34,7 +36,7 @@
 			<key>factoryFunction</key>
 			<string>AUWrapperFactory</string>
 			<key>version</key>
-			<integer>1</integer>
+			<integer>@MONKSYNTH_AU_VERSION@</integer>
 			<key>sandboxSafe</key>
 			<true/>
 			<key>tags</key>

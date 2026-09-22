@@ -1,5 +1,24 @@
 cmake_minimum_required(VERSION 3.20)
-project(MonkSynth VERSION 0.0.1)
+
+# The release version comes from the git tag in CI. It has to be known before
+# project() because the VST3 SDK reads PROJECT_VERSION for the bundle plists
+# and moduleinfo.json.
+set(MONKSYNTH_VERSION_NUMBER "" CACHE STRING "Override version (e.g. 0.2.0), derived from git tag in CI")
+if(MONKSYNTH_VERSION_NUMBER)
+    set(_monksynth_project_version "${MONKSYNTH_VERSION_NUMBER}")
+else()
+    set(_monksynth_project_version "0.0.1")
+endif()
+
+# The deployment target must be set before project(). CMake's Darwin platform
+# init creates this cache entry during project(), defaulting to the host OS
+# version under the Xcode generator, and a later set(CACHE) is then a no-op.
+# That is how 1.0.0 shipped requiring macOS 26.5.
+if(CMAKE_HOST_APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+endif()
+
+project(MonkSynth VERSION ${_monksynth_project_version})
 
 # Default to Release if no build type specified (the VST3 SDK requires one of
 # DEVELOPMENT, RELEASE, _DEBUG, or NDEBUG to be defined).
@@ -13,7 +32,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS version")
     # VSTGUI uses deprecated wstring_convert; suppress the error on newer SDKs
     add_compile_options(-Wno-deprecated-declarations)
 endif()
@@ -54,19 +72,21 @@ set(public_sdk_SOURCE_DIR "${vst3sdk_SOURCE_DIR}/public.sdk")
 
 # --- Version header ---
 set(MONKSYNTH_VERSION_LABEL "dev" CACHE STRING "Version label (e.g. beta.1, rc.1, release)")
-set(MONKSYNTH_VERSION_NUMBER "" CACHE STRING "Override version (e.g. 0.2.0), derived from git tag in CI")
-if(MONKSYNTH_VERSION_NUMBER)
-    set(MONKSYNTH_VERSION "${MONKSYNTH_VERSION_NUMBER}")
-else()
-    set(MONKSYNTH_VERSION "${PROJECT_VERSION}")
-endif()
-string(REPLACE "." ";" _ver_parts "${MONKSYNTH_VERSION}")
-list(GET _ver_parts 0 MONKSYNTH_VERSION_MAJOR)
-list(GET _ver_parts 1 MONKSYNTH_VERSION_MINOR)
-list(GET _ver_parts 2 MONKSYNTH_VERSION_PATCH)
+set(MONKSYNTH_VERSION "${PROJECT_VERSION}")
+set(MONKSYNTH_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(MONKSYNTH_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(MONKSYNTH_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/version.h"
+)
+# AudioComponents "version" is a packed integer, shown by auval as major.minor.patch.
+math(EXPR MONKSYNTH_AU_VERSION
+    "(${MONKSYNTH_VERSION_MAJOR} << 16) | (${MONKSYNTH_VERSION_MINOR} << 8) | ${MONKSYNTH_VERSION_PATCH}")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/au-info.plist.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/au-info.plist"
+    @ONLY
 )
 
 # --- DSP engine (plain C, standalone static library) ---
@@ -214,7 +234,7 @@ if(APPLE AND SMTG_ENABLE_AUV2_BUILDS)
     smtg_target_add_auv2(MonkSynth-au
         BUNDLE_NAME "MonkSynth"
         BUNDLE_IDENTIFIER "com.monksynth.audiounit"
-        INFO_PLIST_TEMPLATE "${CMAKE_CURRENT_SOURCE_DIR}/resources/au-info.plist"
+        INFO_PLIST_TEMPLATE "${CMAKE_CURRENT_BINARY_DIR}/generated/au-info.plist"
         VST3_PLUGIN_TARGET MonkSynth
     )
 endif()

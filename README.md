@@ -71,7 +71,7 @@ CI runs the test suite on the Linux job before packaging each release, so any DS
 
 ## Installation
 
-- **macOS:** Run the `.pkg` installer. It installs both the VST3 and AU plugins
+- **macOS:** Run the `.pkg` installer. It installs both the VST3 and AU plugins. Requires macOS 11 or newer
 - **Windows:** Run the `.exe` installer — installs the VST3 plugin
 - **Linux:** Extract and copy `MonkSynth.vst3` to `~/.vst3/`
 

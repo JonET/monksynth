@@ -5,6 +5,9 @@ All notable changes to MonkSynth will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- The 1.0.0 macOS binaries only loaded on macOS 26.5 or newer, even though the installer accepted 10.15. CMake creates the deployment-target cache entry during `project()` (defaulting to the build machine's OS under Xcode), so the project's later setting was ignored and each release inherited the CI runner's version. The target is now set before `project()`, the minimum is macOS 11, and CI fails if a release binary reports anything else.
+- The Audio Unit was not listed by Ableton Live although it passed `auval` and loaded in Logic and GarageBand. Live requires the AudioComponents name to be in `Manufacturer: Product` form and silently skips components without the prefix; ours was the bare product name (#35).
+- Every macOS bundle reported the wrong version: the VST3 bundle and `moduleinfo.json` said 0.0.1 and the AU said 0.2.0 with a component version of 1, whatever the release. The tag version now feeds `project()` and a configured AU plist, so hosts and the AU cache see the real version and no longer treat every release as identical.
 - Memory-safety pass following a sanitizer and code audit of the DSP core, the plugin layer and the DLL importer. None of these crashed in normal use, but each was real:
   - Sample rates above 192 kHz sized the grain past the fixed voice tables and wrote into the next voice's state. The grain is now clamped to the table size, and rates of zero, NaN or outside 1 kHz to 768 kHz fall back to 44.1 kHz instead of spinning the vibrato phase wrap forever.
   - NaN parameter values passed the range clamps and, on x86, turned into INT_MIN table indices in the vowel lookup and the delay read. Every setter's clamp is now NaN-safe and pitch inputs are clamped to the audible range.

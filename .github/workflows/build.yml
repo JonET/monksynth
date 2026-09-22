@@ -219,6 +219,34 @@ jobs:
           echo "path=$AU" >> "$GITHUB_OUTPUT"
           echo "Found AU at: $AU"
 
+      - name: Verify macOS deployment target and AU metadata
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          # 1.0.0 shipped requiring macOS 26.5 because CMake ignored the
+          # deployment target. Fail the build if that ever happens again.
+          for BIN in "${{ steps.find_vst3.outputs.path }}/Contents/MacOS/MonkSynth" \
+                     "${{ steps.find_au.outputs.path }}/Contents/MacOS/MonkSynth"; do
+            for ARCH in arm64 x86_64; do
+              MINOS=$(otool -arch "$ARCH" -l "$BIN" | awk '/LC_BUILD_VERSION/{f=1} f && /minos/{print $2; exit}')
+              echo "$BIN [$ARCH] minos $MINOS"
+              if [ "$MINOS" != "11.0" ]; then
+                echo "::error::$BIN ($ARCH) targets macOS $MINOS, expected 11.0"
+                exit 1
+              fi
+            done
+          done
+          # Ableton Live silently skips AUs whose name lacks the "Manufacturer: " prefix.
+          PLIST="${{ steps.find_au.outputs.path }}/Contents/Info.plist"
+          NAME=$(/usr/libexec/PlistBuddy -c 'Print :AudioComponents:0:name' "$PLIST")
+          AUVER=$(/usr/libexec/PlistBuddy -c 'Print :AudioComponents:0:version' "$PLIST")
+          BUNDLEVER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")
+          echo "AU name '$NAME', component version $AUVER, bundle version $BUNDLEVER"
+          case "$NAME" in
+            *": "*) ;;
+            *) echo "::error::AudioComponents name must be 'Manufacturer: Product', got '$NAME'"; exit 1 ;;
+          esac
+
       - name: Verify Linux static linking
         if: runner.os == 'Linux'
         run: |
@@ -531,7 +559,7 @@ jobs:
 
           ### Notes
           - Windows build is signed by [SignPath Foundation](https://signpath.org). The certificate is newly issued, so SmartScreen may still show a warning until reputation builds. Click **More info**, then **Run anyway** if so
-          - macOS build is Universal (arm64 + x86_64), signed and notarized
+          - macOS build is Universal (arm64 + x86_64), signed and notarized. Requires macOS 11 or newer
           - Requires a DAW with VST3 support (or AU on macOS)
           EOF
 

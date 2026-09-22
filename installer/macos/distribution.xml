@@ -2,7 +2,7 @@
 <installer-gui-script minSpecVersion="2">
     <title>MonkSynth</title>
     <allowed-os-versions>
-        <os-version min="10.15"/>
+        <os-version min="11.0"/>
     </allowed-os-versions>
     <welcome file="welcome.html"/>
     <license file="license.html"/>
