@@ -2,7 +2,7 @@
 
 All notable changes to MonkSynth will be documented in this file.
 
-## [Unreleased]
+## [1.0.1] - 2026-09-21
 
 ### Fixed
 - The 1.0.0 macOS binaries only loaded on macOS 26.5 or newer, even though the installer accepted 10.15. CMake creates the deployment-target cache entry during `project()` (defaulting to the build machine's OS under Xcode), so the project's later setting was ignored and each release inherited the CI runner's version. The target is now set before `project()`, the minimum is macOS 11, and CI fails if a release binary reports anything else.
