@@ -62,6 +62,8 @@ void Processor::applyParametersToDsp() {
     monk_synth_set_level(synth_, paramValues_[kLevel]);
     monk_synth_set_unison_voice_spread(synth_, paramValues_[kUnisonVoiceSpread] * 0.5f);
     monk_synth_set_pitch_bend(synth_, (paramValues_[kPitchBend] - 0.5f) * 24.0f);
+    vowelFromXY_ = false;
+    lastSentVowel_ = paramValues_[kVowel];
 }
 
 tresult PLUGIN_API Processor::setActive(TBool state) {
@@ -134,7 +136,11 @@ void Processor::applyParameter(ParamID id, float fval, int32 offset, ProcessData
 
     switch (id) {
         case kPortTime:  monk_synth_set_glide(synth_, fval); break;
-        case kVowel:     monk_synth_set_vowel(synth_, fval); break;
+        case kVowel:
+            monk_synth_set_vowel(synth_, fval);
+            vowelFromXY_ = false;
+            lastSentVowel_ = fval;
+            break;
         case kDelay:     monk_synth_set_delay_mix(synth_, fval); break;
         case kHeadSize:  monk_synth_set_voice(synth_, fval); break;
         case kVibrato:    monk_synth_set_vibrato(synth_, fval); break;
@@ -174,6 +180,7 @@ void Processor::applyParameter(ParamID id, float fval, int32 offset, ProcessData
             break;
         case kXYVowel:
             monk_synth_set_vowel(synth_, fval);
+            vowelFromXY_ = true;
             break;
         case kPitchBend:
             // RangeParameter [-12,12]: normalized 0.5 = 0 semitones.
@@ -215,6 +222,8 @@ void Processor::applyParameter(ParamID id, float fval, int32 offset, ProcessData
                                      : fval;
                 monk_synth_set_vowel(synth_, vowelVal);
                 paramValues_[kVowel] = vowelVal;
+                vowelFromXY_ = false;
+                lastSentVowel_ = vowelVal;
                 if (data.outputParameterChanges) {
                     int32 vIndex = 0;
                     auto *vq = data.outputParameterChanges->addParameterData(kVowel, vIndex);
@@ -370,12 +379,19 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         }
     }
 
-    // --- Send smoothed vowel back to UI so the vowel fader animates the glide ---
-    if (xyNoteActive_ && data.outputParameterChanges) {
-        int32 index = 0;
-        auto* vq = data.outputParameterChanges->addParameterData(kVowel, index);
-        if (vq)
-            vq->addPoint(0, static_cast<ParamValue>(monk_synth_get_vowel(synth_)), index);
+    // --- Send smoothed vowel back to UI so the face and vowel fader follow ---
+    // Covers both the XY pad and XY Vowel automation during MIDI notes; the
+    // controller only sees kXYVowel, which neither the face nor the fader
+    // track. Skipped when kVowel drove the change so a knob drag with glide
+    // on isn't fought by the lagging engine value.
+    if ((xyNoteActive_ || vowelFromXY_) && data.outputParameterChanges) {
+        float vowel = monk_synth_get_vowel(synth_);
+        if (vowel != lastSentVowel_) {
+            int32 index = 0;
+            auto* vq = data.outputParameterChanges->addParameterData(kVowel, index);
+            if (vq && vq->addPoint(0, static_cast<ParamValue>(vowel), index) == kResultOk)
+                lastSentVowel_ = vowel;
+        }
     }
 
     data.outputs[0].silenceFlags = 0;

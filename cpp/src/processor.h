@@ -62,6 +62,11 @@ class Processor : public Steinberg::Vst::AudioEffect {
     float xyPendingPitch_ = 0.5f;
     int midiNoteCount_ = 0;
     bool lastNoteActive_ = false;
+    // True while the engine's vowel was last set by kXYVowel (pad or its
+    // automation lane). The face and Vowel fader only follow kVowel, so the
+    // processor echoes the engine vowel back as kVowel in that case.
+    bool vowelFromXY_ = false;
+    float lastSentVowel_ = 0.5f; // kVowel as the controller last saw it
     TimelinePoint timeline_[kMaxTimeline];
 };
 
