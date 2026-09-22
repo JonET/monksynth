@@ -558,7 +558,7 @@ jobs:
           - **Linux (VST3):** Extract and copy to `~/.vst3/`
 
           ### Notes
-          - Windows build is signed by [SignPath Foundation](https://signpath.org). The certificate is newly issued, so SmartScreen may still show a warning until reputation builds. Click **More info**, then **Run anyway** if so
+          - Windows build is signed by [SignPath Foundation](https://signpath.org)
           - macOS build is Universal (arm64 + x86_64), signed and notarized. Requires macOS 11 or newer
           - Requires a DAW with VST3 support (or AU on macOS)
           EOF
