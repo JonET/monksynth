@@ -11,7 +11,8 @@ using namespace VSTGUI;
 
 namespace MonkSynth {
 
-OverlayView::OverlayView(const CRect &size) : CViewContainer(size) {
+OverlayView::OverlayView(const CRect &size, bool standardChrome)
+    : CViewContainer(size), standardChrome_(standardChrome) {
     setTransparency(false);
 
     double bw = 120, bh = 36;
@@ -24,6 +25,11 @@ void OverlayView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) 
     CRect bounds = getViewSize();
 
     ctx->setDrawMode(kAntiAliasing | kNonIntegralMode);
+
+    if (!standardChrome_) {
+        drawBody(ctx, bounds);
+        return;
+    }
 
     // Dark background
     ctx->setFillColor(CColor(30, 30, 35, 255));
@@ -58,17 +64,22 @@ CMouseEventResult OverlayView::onMouseDown(CPoint &where, const CButtonState &bu
     local.offset(-bounds.left, -bounds.top);
 
     if (closeBtnRect_.pointInside(local)) {
-        // The owner removes the view; it defers that itself, since removing
-        // a view from inside its own click handler frees it mid-dispatch.
-        if (closeCb_) {
-            auto cb = closeCb_;
-            cb();
-        }
+        requestClose();
         return kMouseEventHandled;
     }
 
     hitLink(local, true);
     return kMouseEventHandled; // consume all clicks so they don't pass through
+}
+
+void OverlayView::requestClose() {
+    // The owner removes the view; it defers that itself, since removing a
+    // view from inside its own click handler frees it mid-dispatch. Copy the
+    // callback in case running it replaces it.
+    if (closeCb_) {
+        auto cb = closeCb_;
+        cb();
+    }
 }
 
 CMouseEventResult OverlayView::onMouseMoved(CPoint &where, const CButtonState & /*buttons*/) {

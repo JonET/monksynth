@@ -104,13 +104,13 @@ You can also drag `Delay Lama.dll` straight onto the setup screen.
 
 **Logic Pro and GarageBand users:** macOS won't let the AU read files you pick or drop from Downloads, Desktop or Documents ("Operation not permitted"). Click "Open themes folder" on the setup screen and copy `Delay Lama.dll` into that folder; it's imported automatically as soon as it lands there.
 
-Right-click the plugin GUI to switch between installed themes, load a theme from anywhere on disk, or open the themes folder. Themes live in a per-user folder:
+Right-click the plugin GUI and choose **Browse Themes...** to open the theme gallery: it lists the community themes from [monksynth-themes](https://github.com/JonET/monksynth-themes) and installs, updates or removes them with a click. The same menu switches between installed themes, loads a theme from anywhere on disk, or opens the themes folder. Themes live in a per-user folder:
 
 - macOS: `~/Library/Application Support/MonkSynth/themes/`
 - Windows: `%APPDATA%\MonkSynth\themes\`
 - Linux: `~/.config/MonkSynth/themes/`
 
-Community themes are collected in [`themes/`](themes/) in this repo. Themes named in `MONKSYNTH_BUNDLED_THEMES` in [`cpp/CMakeLists.txt`](cpp/CMakeLists.txt) are packaged inside the plugin bundle and show up in the menu automatically; to use any other, copy its folder into the themes folder above and pick it from the right-click menu.
+Community themes live in [monksynth-themes](https://github.com/JonET/monksynth-themes), which is what the gallery reads. Themes in [`themes/`](themes/) here and named in `MONKSYNTH_BUNDLED_THEMES` in [`cpp/CMakeLists.txt`](cpp/CMakeLists.txt) are packaged inside the plugin bundle and show up in the menu automatically; to use any other, copy its folder into the themes folder above and pick it from the right-click menu.
 
 A theme folder contains a `theme.json` manifest and any combination of these PNG files (missing ones fall back to 1x1 placeholders):
 
@@ -132,7 +132,7 @@ A theme folder contains a `theme.json` manifest and any combination of these PNG
 }
 ```
 
-**Looking for fresh default themes to ship with the plugin.** If you design a theme you're proud of, open a PR adding it under `themes/<your-theme>/` — I'd love to include contributed themes in the next release. The right-click menu has an "Open Themes Folder" item that reveals where themes live on disk.
+**Made a theme?** Open a PR adding it to [monksynth-themes](https://github.com/JonET/monksynth-themes#submitting-a-theme); once it's merged it shows up in everyone's gallery, no plugin release needed. The right-click menu has an "Open Themes Folder" item that reveals where themes live on disk.
 
 ## Translations
 

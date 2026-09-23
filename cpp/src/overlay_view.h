@@ -8,9 +8,11 @@ namespace MonkSynth {
 
 // Full-frame modal panel with the shared dark chrome (background, accent
 // line, Close button). Subclasses draw their body and report link hits.
+// With |standardChrome| off, drawBody paints the whole view and the subclass
+// handles its own clicks, calling requestClose() to dismiss.
 class OverlayView : public VSTGUI::CViewContainer {
   public:
-    explicit OverlayView(const VSTGUI::CRect &size);
+    explicit OverlayView(const VSTGUI::CRect &size, bool standardChrome = true);
 
     using CloseCallback = std::function<void()>;
     void setCloseCallback(CloseCallback cb) { closeCb_ = std::move(cb); }
@@ -36,7 +38,11 @@ class OverlayView : public VSTGUI::CViewContainer {
     // Top of the Close button, relative to the view.
     VSTGUI::CCoord closeButtonTop() const { return closeBtnRect_.top; }
 
+    // Runs the close callback; the owner removes the view later.
+    void requestClose();
+
   private:
+    bool standardChrome_ = true;
     VSTGUI::CRect closeBtnRect_;
     CloseCallback closeCb_;
 };

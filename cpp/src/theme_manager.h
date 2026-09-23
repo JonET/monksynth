@@ -47,6 +47,9 @@ class ThemeManager {
     std::string getThemeName() const;
     ThemeInfo getThemeInfo() const;
 
+    // Read theme.json metadata from any theme folder.
+    static ThemeInfo readThemeInfo(const std::filesystem::path &themeDir);
+
     // A theme folder found under getThemesDir() or getBundledThemesDir(),
     // for the context menu's theme switcher. |name| comes from theme.json,
     // falling back to the folder name. |bundled| is true for themes shipped

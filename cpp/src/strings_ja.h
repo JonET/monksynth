@@ -112,6 +112,59 @@ constexpr const char *kStringsJa[] = {
     "アセットを %d/%d 個読み込みました。",
     // ErrExtractFailed
     "DLL からリソースを抽出できませんでした。",
+
+    // MenuBrowseThemes
+    "テーマを探す...",
+    // GalleryTitle
+    "テーマ",
+    // GalleryLoading
+    "テーマを読み込み中...",
+    // GalleryOffline
+    "テーマギャラリーに接続できません。",
+    // GalleryRetry
+    "再試行",
+    // GalleryBy
+    "作: ",
+    // GalleryPillInUse
+    "使用中",
+    // GalleryPillInstalled
+    "導入済み",
+    // GalleryPillGet
+    "入手",
+    // GalleryPillUpdate
+    "更新",
+    // GalleryDownload
+    "ダウンロード",
+    // GalleryDownloading
+    "ダウンロード中",
+    // GalleryUpdate
+    "更新",
+    // GalleryApply
+    "適用",
+    // GalleryRemove
+    "削除",
+    // GalleryCurrent
+    "現在のテーマ",
+    // GalleryMakeOwnTitle
+    "自分でテーマを作る",
+    // GalleryMakeOwnBody
+    "PNG 8 枚と theme.json だけ。仕様を読んでテーマフォルダで作り、プルリクエストを送ればここに追加されます。",
+    // GalleryThemeSpec
+    "テーマの仕様",
+    // GallerySubmit
+    "テーマを投稿",
+    // GalleryNoDescription
+    "説明はありません。",
+    // GalleryDone
+    "完了",
+    // GalleryFilterAll
+    "すべて",
+    // GalleryFilterAvailable
+    "入手可能",
+    // GalleryChecking
+    "テーマを確認中...",
+    // GalleryUpToDate
+    "最新です",
 };
 
 static_assert(sizeof(kStringsJa) / sizeof(kStringsJa[0]) ==

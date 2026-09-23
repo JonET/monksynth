@@ -105,25 +105,6 @@ void SetupView::setStatusText(const std::string &text) {
     setDirty(true);
 }
 
-// Shorten |text| with a trailing ellipsis until it fits |maxWidth| in the
-// context's current font. Cuts at UTF-8 character boundaries.
-static std::string ellipsize(CDrawContext *ctx, std::string text, CCoord maxWidth) {
-    static const char *kEllipsis = "\xE2\x80\xA6";
-    if (ctx->getStringWidth(text.c_str()) <= maxWidth)
-        return text;
-    while (!text.empty()) {
-        // Drop one UTF-8 character from the end.
-        size_t i = text.size() - 1;
-        while (i > 0 && (static_cast<unsigned char>(text[i]) & 0xC0) == 0x80)
-            i--;
-        text.erase(i);
-        std::string candidate = text + kEllipsis;
-        if (ctx->getStringWidth(candidate.c_str()) <= maxWidth)
-            return candidate;
-    }
-    return kEllipsis;
-}
-
 void SetupView::drawBackgroundRect(CDrawContext *ctx, const CRect & /*rect*/) {
     CRect bounds = getViewSize();
     const char *font = i18n::uiFont();

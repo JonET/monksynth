@@ -2,6 +2,12 @@
 
 All notable changes to MonkSynth will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Theme gallery: right-click → Browse Themes... opens the community themes from [monksynth-themes](https://github.com/JonET/monksynth-themes) with previews, and downloads, updates, applies and removes them in place. The editor grows to 1120x720 while the gallery is open and returns to the synth on Done; a VST3 host that won't resize the window gets a compact 360x510 browser instead. Downloads use NSURLSession on macOS, WinHTTP on Windows and the system `curl` on Linux, so no network library is linked. Files are fetched into a staging folder and swapped in only when complete, and the plugin only accepts theme ids and file names it expects from the index. `MONKSYNTH_GALLERY_URL` points the gallery at a fork for testing.
+- The editor no longer tells hosts it can be resized by the user, so hosts stop offering a resize handle on a fixed-size window.
+
 ## [1.0.1] - 2026-09-21
 
 ### Fixed

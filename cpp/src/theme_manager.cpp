@@ -239,6 +239,10 @@ static std::string readThemeName(const fs::path &themeDir) {
     return readThemeManifest(themeDir).name;
 }
 
+ThemeManager::ThemeInfo ThemeManager::readThemeInfo(const fs::path &themeDir) {
+    return readThemeManifest(themeDir);
+}
+
 std::string ThemeManager::getThemeName() const { return getThemeInfo().name; }
 
 ThemeManager::ThemeInfo ThemeManager::getThemeInfo() const {

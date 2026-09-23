@@ -1,5 +1,6 @@
 #pragma once
 
+#include "theme_gallery.h"
 #include "theme_manager.h"
 
 #include "pluginterfaces/vst/ivstmidicontrollers.h"
@@ -13,6 +14,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -33,6 +35,23 @@ class ThemedVST3Editor : public VSTGUI::VST3Editor {
         : VST3Editor(controller, templateName, xmlFile), themeManager_(themeManager) {}
 
     void recreateUI() { requestRecreateView(); }
+
+    // Swaps to another uidesc template ("view" or "gallery") at that
+    // template's size. VST3Editor remembers the window size in nonEditRect so
+    // a user-resized editor keeps its size across rebuilds; the first swap
+    // would store the synth's size there and every later gallery would open
+    // at 360x510. Clearing it makes each template open at its own size.
+    bool switchTemplate(VSTGUI::UTF8StringPtr name) {
+        nonEditRect = VSTGUI::CRect();
+        return exchangeView(name);
+    }
+
+    // The editor has fixed sizes (the synth, the gallery); only the plugin
+    // resizes it. VST3Editor always answers yes, which makes hosts offer a
+    // resize handle.
+    Steinberg::tresult PLUGIN_API canResize() override { return Steinberg::kResultFalse; }
+    // Zoom times the host's content scale, for sizing resize requests.
+    double absScaleFactor() const { return getAbsScaleFactor(); }
 
     bool PLUGIN_API open(void *parent, const VSTGUI::PlatformType &type) override {
         // Swap placeholder bitmaps for real theme assets before the base class
@@ -136,6 +155,10 @@ class Controller : public Steinberg::Vst::EditController,
                               const std::filesystem::path &dllPath);
     void showInfoOverlay(VST3Editor *editor);
     void showThemeInfoOverlay(VST3Editor *editor);
+    // Opens the theme gallery: the wide view if the host will grow the
+    // window, else the compact overlay.
+    void showThemeBrowser(VST3Editor *editor);
+    void closeThemeGallery();
 
     // Pitch-wheel spring-back: after the user releases the pitch bend slider,
     // ease the value back to center in a fresh edit gesture so the return
@@ -153,6 +176,14 @@ class Controller : public Steinberg::Vst::EditController,
     // it without going through the close callback.
     OverlayView *overlay_ = nullptr;
     ThemeManager themeManager_;
+    // Created the first time the theme browser opens. Outlives the editor so
+    // a download finishes if the window is closed; stopped in terminate().
+    std::unique_ptr<ThemeGallery> gallery_;
+    // True while the editor shows the wide "gallery" template instead of the
+    // synth. Theme changes then only swap bitmaps; the synth view is rebuilt
+    // with them when the gallery closes.
+    bool galleryOpen_ = false;
+    void ensureGallery();
     int noteRefCount_ = 0;  // tracks active touches on vowel/pitch controls
     bool inSetParam_ = false; // re-entrancy guard for setParamNormalized
 

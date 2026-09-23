@@ -112,6 +112,59 @@ constexpr const char *kStringsKo[] = {
     "에셋 %d/%d개를 가져왔습니다.",
     // ErrExtractFailed
     "DLL에서 리소스를 추출하지 못했습니다.",
+
+    // MenuBrowseThemes
+    "테마 둘러보기...",
+    // GalleryTitle
+    "테마",
+    // GalleryLoading
+    "테마를 불러오는 중...",
+    // GalleryOffline
+    "테마 갤러리에 연결할 수 없습니다.",
+    // GalleryRetry
+    "다시 시도",
+    // GalleryBy
+    "제작: ",
+    // GalleryPillInUse
+    "사용 중",
+    // GalleryPillInstalled
+    "설치됨",
+    // GalleryPillGet
+    "받기",
+    // GalleryPillUpdate
+    "업데이트",
+    // GalleryDownload
+    "다운로드",
+    // GalleryDownloading
+    "다운로드 중",
+    // GalleryUpdate
+    "업데이트",
+    // GalleryApply
+    "적용",
+    // GalleryRemove
+    "삭제",
+    // GalleryCurrent
+    "현재 테마",
+    // GalleryMakeOwnTitle
+    "나만의 테마 만들기",
+    // GalleryMakeOwnBody
+    "PNG 8개와 theme.json이면 됩니다. 사양을 읽고 테마 폴더에서 만든 뒤 풀 리퀘스트를 보내면 여기에 추가됩니다.",
+    // GalleryThemeSpec
+    "테마 사양",
+    // GallerySubmit
+    "테마 제출",
+    // GalleryNoDescription
+    "설명이 없습니다.",
+    // GalleryDone
+    "완료",
+    // GalleryFilterAll
+    "전체",
+    // GalleryFilterAvailable
+    "받을 수 있음",
+    // GalleryChecking
+    "테마 확인 중...",
+    // GalleryUpToDate
+    "최신 상태입니다",
 };
 
 static_assert(sizeof(kStringsKo) / sizeof(kStringsKo[0]) ==

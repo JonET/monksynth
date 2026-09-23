@@ -54,6 +54,33 @@ enum class StringId : int {
     MsgImportedCount,
     ErrExtractFailed,
 
+    MenuBrowseThemes,
+    GalleryTitle,
+    GalleryLoading,
+    GalleryOffline,
+    GalleryRetry,
+    GalleryBy,
+    GalleryPillInUse,
+    GalleryPillInstalled,
+    GalleryPillGet,
+    GalleryPillUpdate,
+    GalleryDownload,
+    GalleryDownloading,
+    GalleryUpdate,
+    GalleryApply,
+    GalleryRemove,
+    GalleryCurrent,
+    GalleryMakeOwnTitle,
+    GalleryMakeOwnBody,
+    GalleryThemeSpec,
+    GallerySubmit,
+    GalleryNoDescription,
+    GalleryDone,
+    GalleryFilterAll,
+    GalleryFilterAvailable,
+    GalleryChecking,
+    GalleryUpToDate,
+
     Count // sentinel, keep last
 };
 

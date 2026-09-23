@@ -145,7 +145,30 @@ smtg_add_vst3plugin(MonkSynth
     src/strings_ja.h
     src/strings_ko.h
     src/stb_impl.c
+    src/http_fetch.h
+    src/theme_gallery.h
+    src/theme_gallery.cpp
+    src/theme_browser_view.h
+    src/theme_browser_view.cpp
+    src/theme_gallery_view.h
+    src/theme_gallery_view.cpp
+    src/gallery_ui.h
 )
+
+# Theme gallery downloads: NSURLSession on macOS, WinHTTP on Windows, the
+# system curl (a child process, nothing linked) elsewhere.
+if(APPLE)
+    target_sources(MonkSynth PRIVATE src/http_fetch_mac.mm)
+    target_link_libraries(MonkSynth PRIVATE "-framework Foundation")
+else()
+    target_sources(MonkSynth PRIVATE src/http_fetch.cpp)
+endif()
+if(WIN32)
+    target_link_libraries(MonkSynth PRIVATE winhttp)
+endif()
+# The gallery index is parsed with the rapidjson copy that ships with VSTGUI.
+target_include_directories(MonkSynth PRIVATE
+    "${vst3sdk_SOURCE_DIR}/vstgui4/vstgui/thirdparty/rapidjson/include")
 
 target_include_directories(MonkSynth PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_link_libraries(MonkSynth PRIVATE sdk vstgui_support monk_dsp)

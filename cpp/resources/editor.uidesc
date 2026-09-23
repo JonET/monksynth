@@ -77,6 +77,30 @@
 			}
 		},
 		"templates": {
+			"gallery": {
+				"attributes": {
+					"background-color": "~ BlackCColor",
+					"class": "CViewContainer",
+					"maxSize": "1120, 720",
+					"minSize": "1120, 720",
+					"mouse-enabled": "true",
+					"origin": "0, 0",
+					"size": "1120, 720",
+					"transparent": "false"
+				},
+				"children": {
+					"CView": {
+						"attributes": {
+							"class": "CView",
+							"custom-view-name": "ThemeGallery",
+							"mouse-enabled": "true",
+							"origin": "0, 0",
+							"size": "1120, 720",
+							"transparent": "false"
+						}
+					}
+				}
+			},
 			"view": {
 				"attributes": {
 					"background-color": "~ BlackCColor",

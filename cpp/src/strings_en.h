@@ -105,6 +105,59 @@ constexpr const char *kStringsEn[] = {
     "Imported %d/%d assets.",
     // ErrExtractFailed
     "Failed to extract resources from the DLL.",
+
+    // MenuBrowseThemes
+    "Browse Themes...",
+    // GalleryTitle
+    "Themes",
+    // GalleryLoading
+    "Loading themes...",
+    // GalleryOffline
+    "Can't reach the theme gallery.",
+    // GalleryRetry
+    "Try again",
+    // GalleryBy
+    "by ",
+    // GalleryPillInUse
+    "In use",
+    // GalleryPillInstalled
+    "Installed",
+    // GalleryPillGet
+    "Get",
+    // GalleryPillUpdate
+    "Update",
+    // GalleryDownload
+    "Download",
+    // GalleryDownloading
+    "Downloading",
+    // GalleryUpdate
+    "Update",
+    // GalleryApply
+    "Apply",
+    // GalleryRemove
+    "Remove",
+    // GalleryCurrent
+    "Current theme",
+    // GalleryMakeOwnTitle
+    "Make your own theme",
+    // GalleryMakeOwnBody
+    "Eight PNGs and a theme.json. Read the spec, build it in the themes folder, then open a pull request to add it here.",
+    // GalleryThemeSpec
+    "Theme spec",
+    // GallerySubmit
+    "Submit a theme",
+    // GalleryNoDescription
+    "No description provided.",
+    // GalleryDone
+    "Done",
+    // GalleryFilterAll
+    "All",
+    // GalleryFilterAvailable
+    "Available",
+    // GalleryChecking
+    "Checking for themes...",
+    // GalleryUpToDate
+    "Up to date",
 };
 
 static_assert(sizeof(kStringsEn) / sizeof(kStringsEn[0]) ==

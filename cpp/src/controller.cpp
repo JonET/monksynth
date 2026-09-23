@@ -9,6 +9,9 @@
 #include "open_url.h"
 #include "plugin_cids.h"
 #include "setup_view.h"
+#include "theme_browser_view.h"
+#include "theme_gallery.h"
+#include "theme_gallery_view.h"
 #include "theme_info_view.h"
 #include "xy_pad.h"
 
@@ -117,6 +120,15 @@ CView *Controller::createCustomView(UTF8StringPtr name, const UIAttributes & /*a
         view->setNoteActive(getParamNormalized(kNoteActive) > 0.5);
         monkView_ = view;
         return view;
+    }
+    if (UTF8StringView(name) == "ThemeGallery") {
+        ensureGallery();
+        return new ThemeGalleryView(
+            CRect(0, 0, 1120, 720), gallery_.get(),
+            [this]() { return themeManager_.hasTheme() ? themeManager_.themePath() : fs::path(); },
+            [this](const fs::path &dir, bool bundled) { selectTheme(dir, bundled); },
+            // Done is clicked inside the view that the swap destroys.
+            [this]() { deferUI([this]() { closeThemeGallery(); }); });
     }
     if (UTF8StringView(name) == "XYPad") {
         return new XYPadView(CRect(0, 0, 100, 100), nullptr, this);
@@ -306,6 +318,54 @@ void Controller::showThemeInfoOverlay(VST3Editor *editor) {
     presentOverlay(editor, new ThemeInfoView(CRect(0, 0, 360, 510), themeManager_.getThemeInfo()));
 }
 
+void Controller::ensureGallery() {
+    if (!gallery_)
+        gallery_ = std::make_unique<ThemeGallery>();
+}
+
+void Controller::showThemeBrowser(VST3Editor *editor) {
+    if (!editor || editor != currentEditor_ || galleryOpen_)
+        return;
+    ensureGallery();
+
+    // Ask the host for the bigger window first. A VST3 host that refuses
+    // gets the compact browser instead; the AU wrapper always reports
+    // success, so under AU this relies on the host following the view.
+    double scale = static_cast<ThemedVST3Editor *>(editor)->absScaleFactor();
+    if (editor->requestResize(CPoint(1120 * scale, 720 * scale))) {
+        // The synth's views are about to be destroyed.
+        stopSetupDllWatch();
+        monkView_ = nullptr;
+        infoButton_ = nullptr;
+        overlay_ = nullptr;
+        galleryOpen_ = true;
+        static_cast<ThemedVST3Editor *>(editor)->switchTemplate("gallery");
+        return;
+    }
+
+    auto *view = new ThemeBrowserView(
+        CRect(0, 0, 360, 510), gallery_.get(),
+        [this]() { return themeManager_.hasTheme() ? themeManager_.themePath() : fs::path(); },
+        // selectTheme rebuilds the editor, which also closes the browser.
+        [this](const fs::path &dir, bool bundled) { selectTheme(dir, bundled); });
+    presentOverlay(editor, view);
+}
+
+void Controller::closeThemeGallery() {
+    auto *editor = currentEditor_;
+    if (!editor || !galleryOpen_)
+        return;
+    galleryOpen_ = false;
+    // Rebuilds the synth view (with whatever theme was applied) and resizes
+    // the window back.
+    static_cast<ThemedVST3Editor *>(editor)->switchTemplate("view");
+    if (!themeManager_.hasTheme())
+        deferUI([this]() {
+            if (currentEditor_ && !galleryOpen_)
+                showSetupOverlay(currentEditor_);
+        });
+}
+
 void Controller::stopSetupDllWatch() {
     if (setupDllWatch_) {
         setupDllWatch_->stop();
@@ -321,6 +381,7 @@ void Controller::willClose(VST3Editor * /*editor*/) {
     infoButton_ = nullptr;
     currentEditor_ = nullptr;
     overlay_ = nullptr;
+    galleryOpen_ = false;
 }
 
 void Controller::applyTheme(VST3Editor *editor) {
@@ -360,9 +421,17 @@ void Controller::rebuildEditorForTheme() {
     auto *editor = static_cast<ThemedVST3Editor *>(currentEditor_);
     if (!editor)
         return;
+    auto *desc = editor->getUIDescription();
+    if (galleryOpen_) {
+        // The gallery doesn't draw theme bitmaps: swap them now and let
+        // closing the gallery rebuild the synth with them.
+        if (desc)
+            desc->freePlatformResources();
+        applyTheme(editor);
+        return;
+    }
     overlay_ = nullptr; // recreateUI destroys it
     stopSetupDllWatch(); // and the setup screen with it
-    auto *desc = editor->getUIDescription();
     if (desc)
         desc->freePlatformResources();
     applyTheme(editor);
@@ -393,6 +462,7 @@ void Controller::cancelDeferredUI() {
 tresult PLUGIN_API Controller::terminate() {
     cancelDeferredUI();
     stopSetupDllWatch();
+    gallery_.reset(); // joins the download thread
     pitchBendSpringTimer_ = nullptr;
     pbSpringState_ = PbSpring::Idle;
     return EditController::terminate();
@@ -452,6 +522,19 @@ COptionMenu *Controller::createContextMenu(const CPoint & /*pos*/, VST3Editor *e
         menu->addEntry(themeMenu, UTF8String(themeLabel));
         themeMenu->forget();
     }
+
+    // "Browse Themes..." opens the community theme gallery.
+    CCommandMenuItem::Desc browseDesc(i18n::str(i18n::StringId::MenuBrowseThemes));
+    if (galleryOpen_)
+        browseDesc.flags |= CMenuItem::kDisabled;
+    auto *browseItem = new CCommandMenuItem(std::move(browseDesc));
+    browseItem->setActions([this](CCommandMenuItem *) {
+        deferUI([this]() {
+            if (currentEditor_)
+                showThemeBrowser(currentEditor_);
+        });
+    });
+    menu->addEntry(browseItem);
 
     // "About Theme..." — credits and link from the active theme's theme.json.
     if (themeManager_.hasTheme()) {
