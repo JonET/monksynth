@@ -825,7 +825,6 @@ tresult PLUGIN_API Controller::initialize(FUnknown *context) {
     if (result != kResultOk)
         return result;
 
-    monksynthForceWineSafeGui("controller-init");
     themeManager_.loadConfig();
     applyLanguagePreference(themeManager_.languagePref());
 

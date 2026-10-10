@@ -15,19 +15,23 @@ index 62f5e5f..ac12915 100644
  	std::unique_ptr<DirectComposition::Factory> directCompositionFactory;
  	D2DGraphicsDeviceFactory graphicsDeviceFactory;
  	PlatformTaskExecutorPtr taskExecutor;
-@@ -115,7 +121,10 @@ Win32Factory::Win32Factory (HINSTANCE instance)
+@@ -115,7 +121,14 @@ Win32Factory::Win32Factory (HINSTANCE instance)
  	CoCreateInstance (VSTGUI_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
  					  IID_IWICImagingFactory, (void**)impl->wicImagingFactory.adoptPtr ());
  
 -	impl->directCompositionFactory = DirectComposition::Factory::create (impl->d2dFactory.get ());
-+	// MONKSYNTH_GDI: never create the DirectComposition factory. Its D3D11
-+	// composition swapchain does not present into a plugin child window under
-+	// Wine, which leaves the editor black. Win32Frame falls back to
-+	// createDCGraphicsDeviceContext () instead.
++	// MONKSYNTH_GDI: under Wine, skip the DirectComposition factory. Its D3D11
++	// composition swapchain does not present into a plugin child window there,
++	// which leaves the editor black. Win32Frame then falls back to
++	// createDCGraphicsDeviceContext (). Real Windows keeps DirectComposition.
++	auto ntdll = GetModuleHandleW (L"ntdll.dll");
++	bool underWine = ntdll && GetProcAddress (ntdll, "wine_get_version");
++	if (!underWine)
++		impl->directCompositionFactory = DirectComposition::Factory::create (impl->d2dFactory.get ());
  	D2DBitmapCache::init ();
  	if (impl->directCompositionFactory)
  	{
-@@ -248,6 +257,72 @@ PlatformGraphicsDeviceContextPtr
+@@ -248,6 +261,72 @@ PlatformGraphicsDeviceContextPtr
  		TransformMatrix {});
  }
  
