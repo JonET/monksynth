@@ -2,6 +2,12 @@
 
 All notable changes to MonkSynth will be documented in this file.
 
+## [1.0.2] - 2026-10-10
+
+### Fixed
+- Under Wine on Linux the editor stayed black (#36) or grew black rectangles over the monk while the vowel and pitch changed (#40). DXVK can't present the DirectComposition or swapchain targets VSTGUI draws into, so when MonkSynth detects Wine it now paints through a Direct2D DC render target that Wine finishes with a plain GDI blit. Real Windows keeps the existing DirectComposition renderer. Thanks to @WillHanighen, whose fork this fix is based on.
+- Automating the XY Vowel lane changed the sound but left the monk's face frozen unless the pad was held (#38). The face and the Vowel fader now follow XY Vowel automation.
+
 ## [1.0.1] - 2026-09-21
 
 ### Fixed
