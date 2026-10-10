@@ -67,6 +67,16 @@ if(MONKSYNTH_STATIC_LINUX_DEPS)
 endif()
 FetchContent_MakeAvailable(vst3sdk)
 
+# Without this patch the editor paints black under Wine (#36, #40), and
+# apply-patch.cmake only warns when a patch fails to apply.
+if(WIN32)
+    file(READ "${vst3sdk_SOURCE_DIR}/vstgui4/vstgui/lib/platform/win32/win32factory.cpp"
+        _win32factory)
+    if(NOT _win32factory MATCHES "MONKSYNTH_GDI")
+        message(FATAL_ERROR "vstgui-wine-gdi-paint.patch was not applied to VSTGUI")
+    endif()
+endif()
+
 # Ensure dllmain.cpp is found by smtg_target_add_library_main
 set(public_sdk_SOURCE_DIR "${vst3sdk_SOURCE_DIR}/public.sdk")
 
