@@ -1,21 +1,8 @@
 diff --git a/vstgui4/vstgui/lib/platform/win32/win32factory.cpp b/vstgui4/vstgui/lib/platform/win32/win32factory.cpp
-index 62f5e5f..ac12915 100644
+index 62f5e5f..f5d2e3e 100644
 --- a/vstgui4/vstgui/lib/platform/win32/win32factory.cpp
 +++ b/vstgui4/vstgui/lib/platform/win32/win32factory.cpp
-@@ -53,6 +53,12 @@ struct Win32Factory::Impl
- 	COM::Ptr<IDWriteFactory> directWriteFactory;
- 	COM::Ptr<IWICImagingFactory> wicImagingFactory;
- 
-+	// MONKSYNTH_GDI: shared DC render target used by createDCGraphicsDeviceContext.
-+	COM::Ptr<ID2D1DCRenderTarget> dcRenderTarget;
-+	PlatformGraphicsDeviceContextPtr dcDeviceContext;
-+	HDC boundDC {nullptr};
-+	RECT boundRect {};
-+
- 	std::unique_ptr<DirectComposition::Factory> directCompositionFactory;
- 	D2DGraphicsDeviceFactory graphicsDeviceFactory;
- 	PlatformTaskExecutorPtr taskExecutor;
-@@ -115,7 +121,14 @@ Win32Factory::Win32Factory (HINSTANCE instance)
+@@ -115,7 +115,14 @@ Win32Factory::Win32Factory (HINSTANCE instance)
  	CoCreateInstance (VSTGUI_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
  					  IID_IWICImagingFactory, (void**)impl->wicImagingFactory.adoptPtr ());
  
@@ -31,112 +18,86 @@ index 62f5e5f..ac12915 100644
  	D2DBitmapCache::init ();
  	if (impl->directCompositionFactory)
  	{
-@@ -248,6 +261,72 @@ PlatformGraphicsDeviceContextPtr
+@@ -248,6 +255,45 @@ PlatformGraphicsDeviceContextPtr
  		TransformMatrix {});
  }
  
 +//-----------------------------------------------------------------------------
-+// MONKSYNTH_GDI: paint through a Direct2D DC render target. Wine renders that
-+// into an offscreen GDI-compatible surface and BitBlts it onto the bound HDC,
-+// so no DXGI swapchain is created for the editor's child window. Binding
-+// recreates the target bitmap, so the caller must redraw the whole frame
-+// whenever the HDC or client rect changes.
-+PlatformGraphicsDeviceContextPtr
-+	Win32Factory::createDCGraphicsDeviceContext (void* hdc, const CRect& size) const noexcept
++// MONKSYNTH_GDI: create a device context backed by a Direct2D DC render target.
++// Wine renders that into an offscreen GDI-compatible surface and BitBlts it onto
++// the HDC it is bound to, so no DXGI swapchain is created for the editor's child
++// window. Each Win32Frame owns one and binds it to the HDC from BeginPaint on
++// every paint.
++PlatformGraphicsDeviceContextPtr Win32Factory::createDCGraphicsDeviceContext () const noexcept
 +{
-+	auto paintDC = reinterpret_cast<HDC> (hdc);
-+	if (!paintDC)
++	// Wine only accepts B8G8R8A8_UNORM with premultiplied or ignored alpha for DC
++	// render targets, so the format cannot be left as UNKNOWN here.
++	auto properties = D2D1::RenderTargetProperties (
++		D2D1_RENDER_TARGET_TYPE_SOFTWARE,
++		D2D1::PixelFormat (DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 96.f, 96.f,
++		D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE);
++	COM::Ptr<ID2D1DCRenderTarget> dcRenderTarget;
++	if (FAILED (getD2DFactory ()->CreateDCRenderTarget (&properties, dcRenderTarget.adoptPtr ())))
 +		return nullptr;
 +
-+	if (!impl->dcRenderTarget)
-+	{
-+		// Wine only accepts B8G8R8A8_UNORM with premultiplied or ignored alpha
-+		// for DC render targets, so the format cannot be left as UNKNOWN here.
-+		auto properties = D2D1::RenderTargetProperties (
-+			D2D1_RENDER_TARGET_TYPE_SOFTWARE,
-+			D2D1::PixelFormat (DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 96.f,
-+			96.f, D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE);
-+		if (FAILED (getD2DFactory ()->CreateDCRenderTarget (&properties,
-+														   impl->dcRenderTarget.adoptPtr ())))
-+		{
-+			impl->dcRenderTarget.reset ();
-+			return nullptr;
-+		}
-+		impl->boundDC = nullptr;
-+		SetRectEmpty (&impl->boundRect);
-+	}
-+
-+	RECT bindRect {static_cast<LONG> (size.left), static_cast<LONG> (size.top),
-+				   static_cast<LONG> (size.right), static_cast<LONG> (size.bottom)};
-+	if (impl->boundDC != paintDC || !EqualRect (&impl->boundRect, &bindRect))
-+	{
-+		if (FAILED (impl->dcRenderTarget->BindDC (paintDC, &bindRect)))
-+			return nullptr;
-+		impl->dcRenderTarget->SetDpi (96, 96);
-+		impl->boundDC = paintDC;
-+		impl->boundRect = bindRect;
-+	}
-+
-+	if (impl->dcDeviceContext)
-+		return impl->dcDeviceContext;
-+
 +	COM::Ptr<ID2D1DeviceContext> deviceContext;
-+	if (FAILED (impl->dcRenderTarget->QueryInterface (
++	if (FAILED (dcRenderTarget->QueryInterface (
 +			__uuidof (ID2D1DeviceContext), reinterpret_cast<void**> (deviceContext.adoptPtr ()))))
 +		return nullptr;
 +
-+	ID2D1Device* d2ddevice {};
-+	deviceContext->GetDevice (&d2ddevice);
-+	auto device = impl->graphicsDeviceFactory.find (d2ddevice);
++	COM::Ptr<ID2D1Device> d2ddevice;
++	deviceContext->GetDevice (d2ddevice.adoptPtr ());
++	auto device = impl->graphicsDeviceFactory.find (d2ddevice.get ());
 +	if (!device)
 +	{
-+		impl->graphicsDeviceFactory.addDevice (std::make_shared<D2DGraphicsDevice> (d2ddevice));
-+		device = impl->graphicsDeviceFactory.find (d2ddevice);
++		impl->graphicsDeviceFactory.addDevice (
++			std::make_shared<D2DGraphicsDevice> (d2ddevice.get ()));
++		device = impl->graphicsDeviceFactory.find (d2ddevice.get ());
 +		vstgui_assert (device);
 +	}
 +
-+	impl->dcDeviceContext = std::make_shared<D2DGraphicsDeviceContext> (
++	return std::make_shared<D2DGraphicsDeviceContext> (
 +		*std::static_pointer_cast<D2DGraphicsDevice> (device).get (), deviceContext.get (),
 +		TransformMatrix {});
-+	return impl->dcDeviceContext;
 +}
 +
  //-----------------------------------------------------------------------------
  void Win32Factory::disableDirectComposition () const noexcept
  {
 diff --git a/vstgui4/vstgui/lib/platform/win32/win32factory.h b/vstgui4/vstgui/lib/platform/win32/win32factory.h
-index 3b8666f..0055b45 100644
+index 3b8666f..e65b223 100644
 --- a/vstgui4/vstgui/lib/platform/win32/win32factory.h
 +++ b/vstgui4/vstgui/lib/platform/win32/win32factory.h
 @@ -43,6 +43,10 @@ public:
  
  	DirectComposition::Factory* getDirectCompositionFactory () const noexcept;
  	PlatformGraphicsDeviceContextPtr createGraphicsDeviceContext (void* hwnd) const noexcept;
-+	/** MONKSYNTH_GDI: create a device context that presents by blitting to a GDI
-+	 * device context instead of via a DXGI swapchain. */
-+	PlatformGraphicsDeviceContextPtr createDCGraphicsDeviceContext (
-+		void* hdc, const CRect& size) const noexcept;
++	/** MONKSYNTH_GDI: create a device context backed by a Direct2D DC render target,
++	 * which presents by blitting to the HDC it is bound to instead of via a DXGI
++	 * swapchain. The caller binds it with ID2D1DCRenderTarget::BindDC before drawing. */
++	PlatformGraphicsDeviceContextPtr createDCGraphicsDeviceContext () const noexcept;
  
  	/** disable the use of direct composition. must be called before anything else or the behaviour
  	 * is undefined. */
 diff --git a/vstgui4/vstgui/lib/platform/win32/win32frame.cpp b/vstgui4/vstgui/lib/platform/win32/win32frame.cpp
-index 7ff52ef..d1862c4 100644
+index 7ff52ef..094649a 100644
 --- a/vstgui4/vstgui/lib/platform/win32/win32frame.cpp
 +++ b/vstgui4/vstgui/lib/platform/win32/win32frame.cpp
-@@ -724,26 +724,24 @@ void Win32Frame::paint (HWND hwnd)
+@@ -724,28 +724,43 @@ void Win32Frame::paint (HWND hwnd)
  		}
  		else
  		{
--			if (!legacyDrawDevice)
--				legacyDrawDevice =
++			// MONKSYNTH_GDI: this frame paints through its own Direct2D DC render
++			// target. It is bound to the HDC from BeginPaint on every paint, because
++			// BeginPaint hands out DC handles from a pool and an unchanged handle is no
++			// guarantee of the same paint session. Binding discards the previous
++			// target bitmap, so the whole frame is redrawn rather than just the update
++			// region; GDI still clips the resulting BitBlt to the invalid area.
+ 			if (!legacyDrawDevice)
+ 				legacyDrawDevice =
 -					getPlatformFactory ().asWin32Factory ()->createGraphicsDeviceContext (hwnd);
-+			// MONKSYNTH_GDI: bind a Direct2D DC render target to the HDC from
-+			// BeginPaint. Binding discards the previous target bitmap, so the
-+			// whole frame is redrawn rather than just the update region; GDI
-+			// still clips the resulting BitBlt to the invalid area.
-+			legacyDrawDevice =
-+				getPlatformFactory ().asWin32Factory ()->createDCGraphicsDeviceContext (
-+					hdc, frameSize);
++					getPlatformFactory ().asWin32Factory ()->createDCGraphicsDeviceContext ();
++			COM::Ptr<ID2D1DCRenderTarget> dcRenderTarget;
  			if (legacyDrawDevice)
  			{
 -				GetRgnBox (rgn, &ps.rcPaint);
@@ -144,10 +105,18 @@ index 7ff52ef..d1862c4 100644
 -								  (CCoord)ps.rcPaint.right, (CCoord)ps.rcPaint.bottom);
 -
 -				legacyDrawDevice->setClipRect (updateRect);
+-
++				auto deviceContext = std::static_pointer_cast<D2DGraphicsDeviceContext> (
++										 legacyDrawDevice)
++										 ->getID2D1DeviceContext ();
++				deviceContext->QueryInterface (__uuidof (ID2D1DCRenderTarget),
++											   reinterpret_cast<void**> (dcRenderTarget.adoptPtr ()));
++			}
++			if (dcRenderTarget && SUCCEEDED (dcRenderTarget->BindDC (hdc, &clientRect)))
++			{
 +				legacyDrawDevice->setClipRect (frameSize);
- 
  				legacyDrawDevice->beginDraw ();
- 
+-
 -				iterateRegion (rgn, [&] (const auto& rect) {
 -					legacyDrawDevice->saveGlobalState ();
 -					legacyDrawDevice->setClipRect (updateRect);
@@ -155,11 +124,22 @@ index 7ff52ef..d1862c4 100644
 -					getFrame ()->platformDrawRects (legacyDrawDevice, 1, {1, rect});
 -					legacyDrawDevice->restoreGlobalState ();
 -				});
-+				legacyDrawDevice->saveGlobalState ();
-+				legacyDrawDevice->setClipRect (frameSize);
+-
 +				legacyDrawDevice->clearRect (frameSize);
 +				getFrame ()->platformDrawRects (legacyDrawDevice, 1, {1, frameSize});
-+				legacyDrawDevice->restoreGlobalState ();
- 
++
++				// endDraw () discards EndDraw's result, so ask the target directly. A
++				// lost target is rebuilt on the next paint instead of leaving the
++				// editor blank until the plugin is reloaded. Only that error counts:
++				// Flush also reports ordinary drawing failures (Wine fails every
++				// DrawTextLayout), and rebuilding for those would repaint forever.
++				bool targetLost = dcRenderTarget->Flush () == D2DERR_RECREATE_TARGET;
  				legacyDrawDevice->endDraw ();
++				if (targetLost)
++				{
++					legacyDrawDevice.reset ();
++					needsInvalidation = true;
++				}
  			}
+ 		}
+ 	}

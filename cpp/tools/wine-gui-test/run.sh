@@ -25,6 +25,8 @@ fi
 
 docker build --platform linux/amd64 -q -t "$image" "$here" >/dev/null
 
+failed=0
+
 for arg in "$@"; do
     if [[ $arg == release:* ]]; then
         tag=${arg#release:}
@@ -46,10 +48,19 @@ for arg in "$@"; do
     echo "== $label"
     # WINE_OVERRIDES adds Wine DLL overrides, e.g. WINE_OVERRIDES=dcomp=d to
     # see how a build behaves when DirectComposition is unavailable.
+    # INSTANCES sets how many editors guiprobe opens side by side (default 2).
+    status=0
     docker run --rm --platform linux/amd64 \
         -e WINEDLLOVERRIDES="mscoree,mshtml=${WINE_OVERRIDES:+;$WINE_OVERRIDES}" \
+        -e INSTANCES="${INSTANCES:-2}" \
         -v "$zip:/in/plugin.zip:ro" -v "$results/$label:/out" \
-        "$image" /in/plugin.zip /out | grep -E 'VERDICT|black|rect' || true
+        "$image" /in/plugin.zip /out >"$results/$label/run.log" 2>&1 || status=$?
+    grep -E 'VERDICT|black|rect|FAIL|exited|timed out|Traceback|Error' "$results/$label/run.log" || true
+    if [ $status -ne 0 ]; then
+        echo "FAILED ($label exited $status; see $results/$label/run.log)"
+        failed=1
+    fi
 done
 
 echo "results: $results"
+exit $failed

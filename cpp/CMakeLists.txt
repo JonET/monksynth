@@ -67,13 +67,30 @@ if(MONKSYNTH_STATIC_LINUX_DEPS)
 endif()
 FetchContent_MakeAvailable(vst3sdk)
 
-# Without this patch the editor paints black under Wine (#36, #40), and
-# apply-patch.cmake only warns when a patch fails to apply.
+# Without this patch the editor paints black under Wine (#36, #40). FetchContent
+# only runs PATCH_COMMAND when it first downloads the SDK, so a build folder from
+# before the patch existed, or from an older version of it, would otherwise
+# build with stale VSTGUI sources.
 if(WIN32)
-    file(READ "${vst3sdk_SOURCE_DIR}/vstgui4/vstgui/lib/platform/win32/win32factory.cpp"
-        _win32factory)
-    if(NOT _win32factory MATCHES "MONKSYNTH_GDI")
-        message(FATAL_ERROR "vstgui-wine-gdi-paint.patch was not applied to VSTGUI")
+    find_package(Git REQUIRED)
+    set(_wine_patch "${CMAKE_CURRENT_SOURCE_DIR}/patches/vstgui-wine-gdi-paint.patch")
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" apply --reverse --check "${_wine_patch}"
+        WORKING_DIRECTORY "${vst3sdk_SOURCE_DIR}"
+        RESULT_VARIABLE _wine_patch_applied OUTPUT_QUIET ERROR_QUIET)
+    if(NOT _wine_patch_applied EQUAL 0)
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" apply "${_wine_patch}"
+            WORKING_DIRECTORY "${vst3sdk_SOURCE_DIR}"
+            RESULT_VARIABLE _wine_patch_result OUTPUT_QUIET ERROR_QUIET)
+        if(_wine_patch_result EQUAL 0)
+            message(STATUS "vstgui-wine-gdi-paint.patch applied to existing SDK sources")
+        else()
+            message(FATAL_ERROR
+                "The VST3 SDK sources in ${vst3sdk_SOURCE_DIR} don't match "
+                "patches/vstgui-wine-gdi-paint.patch (probably an older version of it). "
+                "Delete ${CMAKE_BINARY_DIR}/_deps/vst3sdk-* and configure again.")
+        endif()
     endif()
 endif()
 
