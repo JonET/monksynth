@@ -80,10 +80,10 @@ index 3b8666f..e65b223 100644
  	/** disable the use of direct composition. must be called before anything else or the behaviour
  	 * is undefined. */
 diff --git a/vstgui4/vstgui/lib/platform/win32/win32frame.cpp b/vstgui4/vstgui/lib/platform/win32/win32frame.cpp
-index 7ff52ef..768f5c0 100644
+index 7ff52ef..094649a 100644
 --- a/vstgui4/vstgui/lib/platform/win32/win32frame.cpp
 +++ b/vstgui4/vstgui/lib/platform/win32/win32frame.cpp
-@@ -724,28 +724,41 @@ void Win32Frame::paint (HWND hwnd)
+@@ -724,28 +724,43 @@ void Win32Frame::paint (HWND hwnd)
  		}
  		else
  		{
@@ -116,9 +116,7 @@ index 7ff52ef..768f5c0 100644
 +			{
 +				legacyDrawDevice->setClipRect (frameSize);
  				legacyDrawDevice->beginDraw ();
-+				legacyDrawDevice->clearRect (frameSize);
-+				getFrame ()->platformDrawRects (legacyDrawDevice, 1, {1, frameSize});
- 
+-
 -				iterateRegion (rgn, [&] (const auto& rect) {
 -					legacyDrawDevice->saveGlobalState ();
 -					legacyDrawDevice->setClipRect (updateRect);
@@ -127,10 +125,15 @@ index 7ff52ef..768f5c0 100644
 -					legacyDrawDevice->restoreGlobalState ();
 -				});
 -
++				legacyDrawDevice->clearRect (frameSize);
++				getFrame ()->platformDrawRects (legacyDrawDevice, 1, {1, frameSize});
++
 +				// endDraw () discards EndDraw's result, so ask the target directly. A
-+				// lost target (D2DERR_RECREATE_TARGET) is rebuilt on the next paint
-+				// instead of leaving the editor blank until the plugin is reloaded.
-+				bool targetLost = FAILED (dcRenderTarget->Flush ());
++				// lost target is rebuilt on the next paint instead of leaving the
++				// editor blank until the plugin is reloaded. Only that error counts:
++				// Flush also reports ordinary drawing failures (Wine fails every
++				// DrawTextLayout), and rebuilding for those would repaint forever.
++				bool targetLost = dcRenderTarget->Flush () == D2DERR_RECREATE_TARGET;
  				legacyDrawDevice->endDraw ();
 +				if (targetLost)
 +				{
