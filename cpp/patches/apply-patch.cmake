@@ -2,7 +2,7 @@
 # Applies every *.patch in this directory if not already applied.
 # A failed apply is a warning, not a hard error, because the Linux static-link
 # patch is guarded by MONKSYNTH_STATIC_LINUX_DEPS. CMakeLists.txt checks
-# separately that vstgui-wine-gdi-paint.patch landed on Windows.
+# separately that the current vstgui-wine-gdi-paint.patch is applied on Windows.
 
 get_filename_component(PATCH_DIR "${CMAKE_CURRENT_LIST_DIR}" ABSOLUTE)
 file(GLOB PATCH_FILES "${PATCH_DIR}/*.patch")
