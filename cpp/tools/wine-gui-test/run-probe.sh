@@ -7,7 +7,7 @@ set -euo pipefail
 zip=$1
 out=$2
 mkdir -p "$out"
-rm -f "$out"/*.png "$out"/*.log "$out"/summary.txt
+rm -f "$out"/*.png "$out"/probe.log "$out"/wine.log "$out"/summary.txt
 
 work=$(mktemp -d)
 unzip -q "$zip" -d "$work"
@@ -29,7 +29,7 @@ sleep 1
 
 log="$out/probe.log"
 : >"$log"
-wine /probe/guiprobe.exe "$(winepath -w "$vst3")" >"$log" 2>"$out/wine.log" &
+wine /probe/guiprobe.exe "$(winepath -w "$vst3")" "${INSTANCES:-2}" >"$log" 2>"$out/wine.log" &
 probe=$!
 
 wait_for() {

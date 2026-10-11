@@ -6,6 +6,11 @@
 // RECT lines on stdout so wine-gui-test can screenshot the right moments and
 // crop to the editor.
 //
+// By default it opens two instances side by side, like two tracks in a DAW.
+// They share the plugin module and so VSTGUI's global platform factory.
+//
+//   guiprobe <MonkSynth.vst3> [instances]
+//
 // Built with mingw-w64 inside the wine-gui-test container, against the VST3
 // SDK's pluginterfaces headers only.
 
@@ -21,7 +26,9 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <string>
+#include <vector>
 
 using namespace Steinberg;
 using namespace Steinberg::Vst;
@@ -105,16 +112,21 @@ class Host : public IHostApplication, public IComponentHandler, public IPlugFram
     std::atomic<uint32> refs_{1};
 };
 
-Host host;
-IEditController *controller = nullptr;
+struct Instance {
+    Host host;
+    IEditController *controller = nullptr;
+    IPlugView *view = nullptr;
+};
+
+std::vector<std::unique_ptr<Instance>> instances;
 DWORD startTick = 0;
 int phaseIndex = -1;
 
-void printRect() {
+void printRect(HWND hwnd) {
     RECT rc;
-    GetClientRect(host.hwnd, &rc);
+    GetClientRect(hwnd, &rc);
     POINT tl{rc.left, rc.top};
-    ClientToScreen(host.hwnd, &tl);
+    ClientToScreen(hwnd, &tl);
     std::printf("RECT %ld %ld %ld %ld\n", tl.x, tl.y, rc.right - rc.left, rc.bottom - rc.top);
     std::fflush(stdout);
 }
@@ -133,17 +145,23 @@ void tick() {
         phaseIndex = next;
         static const char *names[] = {"static", "sweep", "settle", "done"};
         if (next == 1)
-            controller->setParamNormalized(kNoteActive, 1.0);
+            for (auto &inst : instances)
+                inst->controller->setParamNormalized(kNoteActive, 1.0);
         phase(names[next]);
         if (next == 3)
             PostQuitMessage(0);
     }
     if (phaseIndex == 1) {
         // Different periods so vowel and pitch changes land on different ticks,
-        // like a hand moving the XY pad.
+        // like a hand moving the XY pad, and a phase offset per instance so the
+        // editors repaint at different moments.
         double s = (t - kStaticMs) / 1000.0;
-        controller->setParamNormalized(kVowel, 0.5 + 0.5 * std::sin(s * 2.1));
-        controller->setParamNormalized(kPitchBend, 0.5 + 0.5 * std::sin(s * 3.3));
+        for (size_t i = 0; i < instances.size(); ++i) {
+            double o = i * 0.7;
+            instances[i]->controller->setParamNormalized(kVowel, 0.5 + 0.5 * std::sin(s * 2.1 + o));
+            instances[i]->controller->setParamNormalized(kPitchBend,
+                                                         0.5 + 0.5 * std::sin(s * 3.3 + o));
+        }
     }
 }
 
@@ -185,9 +203,12 @@ std::wstring resolveDll(const std::wstring &arg) {
 
 int wmain(int argc, wchar_t **argv) {
     if (argc < 2) {
-        std::printf("usage: guiprobe <MonkSynth.vst3>\n");
+        std::printf("usage: guiprobe <MonkSynth.vst3> [instances]\n");
         return 2;
     }
+    int count = argc > 2 ? _wtoi(argv[2]) : 2;
+    if (count < 1)
+        count = 1;
 
     // VSTGUI creates its WIC and Direct2D factories with CoCreateInstance when
     // the module initializes, so COM must be up first, as it is in any DAW.
@@ -213,48 +234,56 @@ int wmain(int argc, wchar_t **argv) {
     if (!factory)
         return fail("GetPluginFactory returned null");
 
-    step("createInstance");
-    if (factory->createInstance(kControllerUID, IEditController::iid,
-                                reinterpret_cast<void **>(&controller)) != kResultOk)
-        return fail("create controller");
-    if (controller->initialize(static_cast<IHostApplication *>(&host)) != kResultOk)
-        return fail("controller initialize");
-    controller->setComponentHandler(&host);
-
-    step("createView");
-    IPlugView *view = controller->createView(ViewType::kEditor);
-    if (!view)
-        return fail("createView");
-    if (view->isPlatformTypeSupported(kPlatformTypeHWND) != kResultTrue)
-        return fail("HWND not supported");
-
-    ViewRect size;
-    view->getSize(&size);
-
     WNDCLASSW wc{};
     wc.lpfnWndProc = wndProc;
     wc.hInstance = GetModuleHandleW(nullptr);
     wc.lpszClassName = L"guiprobe";
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     RegisterClassW(&wc);
+    const DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
+    int nextX = 40;
 
-    DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
-    RECT wr{0, 0, size.getWidth(), size.getHeight()};
-    AdjustWindowRect(&wr, style, FALSE);
-    host.hwnd = CreateWindowW(L"guiprobe", L"guiprobe", style, 40, 40, wr.right - wr.left,
-                              wr.bottom - wr.top, nullptr, nullptr, wc.hInstance, nullptr);
-    if (!host.hwnd)
-        return fail("CreateWindow");
+    for (int i = 0; i < count; ++i) {
+        auto inst = std::make_unique<Instance>();
+        Host &host = inst->host;
 
-    step("attached");
-    view->setFrame(&host);
-    if (view->attached(host.hwnd, kPlatformTypeHWND) != kResultOk)
-        return fail("attached");
-    ShowWindow(host.hwnd, SW_SHOW);
-    UpdateWindow(host.hwnd);
-    printRect();
+        step("createInstance");
+        if (factory->createInstance(kControllerUID, IEditController::iid,
+                                    reinterpret_cast<void **>(&inst->controller)) != kResultOk)
+            return fail("create controller");
+        if (inst->controller->initialize(static_cast<IHostApplication *>(&host)) != kResultOk)
+            return fail("controller initialize");
+        inst->controller->setComponentHandler(&host);
 
-    SetTimer(host.hwnd, kTimerId, kTickMs, nullptr);
+        step("createView");
+        inst->view = inst->controller->createView(ViewType::kEditor);
+        if (!inst->view)
+            return fail("createView");
+        if (inst->view->isPlatformTypeSupported(kPlatformTypeHWND) != kResultTrue)
+            return fail("HWND not supported");
+
+        ViewRect size;
+        inst->view->getSize(&size);
+        RECT wr{0, 0, size.getWidth(), size.getHeight()};
+        AdjustWindowRect(&wr, style, FALSE);
+        host.hwnd = CreateWindowW(L"guiprobe", L"guiprobe", style, nextX, 40, wr.right - wr.left,
+                                  wr.bottom - wr.top, nullptr, nullptr, wc.hInstance, nullptr);
+        if (!host.hwnd)
+            return fail("CreateWindow");
+        nextX += wr.right - wr.left + 40;
+
+        step("attached");
+        inst->view->setFrame(&host);
+        if (inst->view->attached(host.hwnd, kPlatformTypeHWND) != kResultOk)
+            return fail("attached");
+        ShowWindow(host.hwnd, SW_SHOW);
+        UpdateWindow(host.hwnd);
+        printRect(host.hwnd);
+        instances.push_back(std::move(inst));
+    }
+
+    HWND timerWindow = instances.front()->host.hwnd;
+    SetTimer(timerWindow, kTimerId, kTickMs, nullptr);
 
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
@@ -262,13 +291,16 @@ int wmain(int argc, wchar_t **argv) {
         DispatchMessageW(&msg);
     }
 
-    KillTimer(host.hwnd, kTimerId);
-    view->removed();
-    view->release();
-    controller->setComponentHandler(nullptr);
-    controller->terminate();
-    controller->release();
-    DestroyWindow(host.hwnd);
+    KillTimer(timerWindow, kTimerId);
+    for (auto &inst : instances) {
+        inst->view->removed();
+        inst->view->release();
+        inst->controller->setComponentHandler(nullptr);
+        inst->controller->terminate();
+        inst->controller->release();
+        DestroyWindow(inst->host.hwnd);
+    }
+    instances.clear();
     if (auto exitDll = reinterpret_cast<BoolFn>(GetProcAddress(mod, "ExitDll")))
         exitDll();
     OleUninitialize();

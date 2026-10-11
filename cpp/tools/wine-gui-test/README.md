@@ -4,13 +4,14 @@ Checks that the Windows VST3 editor paints under Wine (issues #36 and #40)
 without a Linux box or a DAW.
 
 - `guiprobe.cpp` is a minimal VST3 host. It loads only the edit controller,
-  opens the editor, then sets note-on and sweeps Vowel and Pitch Bend through
-  `setParamNormalized`, which is the redraw path a DAW drives.
+  opens two editors side by side, then sets note-on and sweeps Vowel and Pitch
+  Bend through `setParamNormalized`, which is the redraw path a DAW drives.
 - `run-probe.sh` runs inside the container: Xvfb, Wine, guiprobe, and an X
   screenshot of each phase (static, sweep, settle).
 - `analyze.py` crops the screenshots to the editor, reports the fraction of
-  black pixels per frame and prints a verdict: `BLACK EDITOR` (#36),
-  `BLACK REGIONS` (#40) or `OK`. It also writes `contact-sheet.png`.
+  black pixels per frame for each editor and prints a verdict: `BLACK EDITOR`
+  (#36), `BLACK REGIONS` (#40) or `OK`. It also writes `contact-sheet.png`.
+  `run.sh` exits non-zero unless every build it ran came out `OK`.
 
 ## Running
 
@@ -21,7 +22,8 @@ cpp/tools/wine-gui-test/run.sh fix=path/to/MonkSynth-VST3-Windows.zip
 
 Zips are the `MonkSynth-VST3-Windows` CI artifact or release asset. Results go
 to `cpp/build/wine-gui-test/<label>/`. `WINE_OVERRIDES=dcomp=d run.sh ...`
-adds Wine DLL overrides for experiments.
+adds Wine DLL overrides for experiments, and `INSTANCES=1` opens a single
+editor.
 
 v1.0.1 shows `BLACK REGIONS`: the editor paints at rest, then the monk view
 turns black once vowel and pitch start changing, matching #40.
