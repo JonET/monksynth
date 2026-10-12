@@ -15,7 +15,7 @@ endif()
 # version under the Xcode generator, and a later set(CACHE) is then a no-op.
 # That is how 1.0.0 shipped requiring macOS 26.5.
 if(CMAKE_HOST_APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum macOS version")
 endif()
 
 project(MonkSynth VERSION ${_monksynth_project_version})
