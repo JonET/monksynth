@@ -2,6 +2,11 @@
 
 All notable changes to MonkSynth will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- macOS 12 is now the minimum, up from 11. Xcode 27 no longer builds for a macOS 11 deployment target, so the plugins and installer now require macOS 12 or newer.
+
 ## [1.0.2] - 2026-10-10
 
 ### Fixed
